@@ -42,8 +42,7 @@ def main():
                  "$BTC, $ETH and $XMR.\n\n"
                  "No need to jump between exchanges.\n"
                  "Compare offers and swap in one place.\n"
-                 "No account needed.\n\n👉 coinoswap.com\n\n"
-                 f"Indicative USD prices checked at {done:%H:%M} SAST; actual swap quotes may differ.")
+                 "No account needed.\n\n👉 coinoswap.com\n\n")
         record={"status":"VALIDATED","approval_state":"PUBLICATION_APPROVED_NOT_YET_PUBLISHED",
                 "date_sast":today,"checked_at_sast":done.isoformat(timespec="seconds"),
                 "expires_at_sast":earliest_expiry.isoformat(timespec="seconds"),
