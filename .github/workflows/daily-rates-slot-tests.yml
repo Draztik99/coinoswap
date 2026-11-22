@@ -1,0 +1,38 @@
+name: CoinoSwap Randomized Slot Checks (NO POST)
+on:
+  push:
+    paths:
+      - ".github/workflows/daily-rates-slot-tests.yml"
+      - "daily-rates/posting_slots.py"
+      - "daily-rates/should_prepare.py"
+      - "daily-rates/prepare_rates.py"
+      - ".github/workflows/daily-rates.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-slots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Syntax and randomized weekly coverage
+        run: |
+          python -m py_compile daily-rates/posting_slots.py daily-rates/should_prepare.py daily-rates/prepare_rates.py
+          python - <<'PY'
+          import sys
+          from datetime import date,timedelta
+          sys.path.insert(0,'daily-rates')
+          from posting_slots import SLOTS,slot_for_date,expected_prepare_time
+          assert len(SLOTS)==7
+          for monday in (date(2026,11,23),date(2026,11,30),date(2026,12,7)):
+              selections=[slot_for_date(monday+timedelta(days=i)) for i in range(7)]
+              assert set(selections)==set(SLOTS), selections
+              for i,slot in enumerate(selections):
+                  day=monday+timedelta(days=i)
+                  before=expected_prepare_time(day)
+                  assert before[0]*60+before[1]==slot[0]*60+slot[1]-4
+                  print(day,'SAST publish',f'{slot[0]:02}:{slot[1]:02}','prepare',f'{before[0]:02}:{before[1]:02}')
+          PY
