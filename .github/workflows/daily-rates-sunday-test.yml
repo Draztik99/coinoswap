@@ -1,5 +1,5 @@
 name: CoinoSwap Daily Rates — One-Off Live Test (NO POST)
-# Second safe run after fixing CoinMarketCap v3 string success status
+# Live final validation run requested 2026-11-22 14:03 SAST; no social publishing
 on:
   push:
     paths:
