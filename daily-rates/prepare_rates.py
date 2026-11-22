@@ -35,7 +35,13 @@ def cmc(key):
         r.raise_for_status()
         j=r.json()
     except (requests.RequestException,ValueError): raise Block('CoinMarketCap unavailable')
-    if j.get('status',{}).get('error_code') != 0: raise Block('CoinMarketCap API error')
+    # CoinMarketCap V3 returns "0" as a string on successful responses.
+    status=j.get('status') or {}
+    try:
+        error_code=int(status.get('error_code'))
+    except (ValueError,TypeError):
+        raise Block('CoinMarketCap missing/invalid API status code')
+    if error_code != 0: raise Block(f'CoinMarketCap API error code {error_code}')
     rows=j.get('data')
     if isinstance(rows,dict): rows=list(rows.values())
     if not isinstance(rows,list): raise Block('CoinMarketCap missing records')
