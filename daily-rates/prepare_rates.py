@@ -125,8 +125,7 @@ def main():
         text=(f"Your {now.day} {now.strftime('%B')} crypto price check 📊\n"
               "$BTC, $ETH and $XMR.\n\nNo need to jump between exchanges.\n"
               "Compare offers and swap in one place.\nNo account needed.\n\n"
-              "👉 coinoswap.com\n\n"
-              f"Indicative USD prices checked at {completed:%H:%M} SAST; actual swap quotes may differ.")
+              "👉 coinoswap.com\n\n")
         record={'status':'VALIDATED','approval_state':'NOT_PUBLISHED',
                 'date_sast':date,'checked_at_sast':completed.isoformat(timespec='seconds'),
                 'target_sast':date+'T12:00:00+02:00','coins':audits,
