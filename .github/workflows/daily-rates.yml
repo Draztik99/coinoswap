@@ -1,0 +1,34 @@
+name: CoinoSwap Daily Rates (Generate Only)
+on:
+  schedule:
+    # UTC 09:50 = South Africa 11:50. Late jobs must fail closed.
+    - cron: "50 9 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: coinoswap-daily-rates
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update -qq && sudo apt-get install -y fonts-lato
+      - run: pip install -r daily-rates/requirements.txt
+      - name: Generate validated assets — NEVER publish
+        env:
+          CMC_API_KEY: ${{ secrets.CMC_API_KEY }}
+        run: python daily-rates/prepare_rates.py
+      - name: Save dated image and audit
+        run: |
+          git config user.name "CoinoSwap Rates Bot"
+          git config user.email "coinoswap-rates-bot@users.noreply.github.com"
+          git add docs/daily-rates/
+          if git diff --cached --quiet; then exit 1; fi
+          git commit -m "Daily Rates verified $(TZ=Africa/Johannesburg date +%Y-%m-%d)"
+          git push
