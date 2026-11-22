@@ -1,5 +1,5 @@
-name: CoinoSwap Daily Rates — One-Off Live Test (NO POST)
-# Live final validation run requested 2026-11-22 14:03 SAST; no social publishing
+name: CoinoSwap Daily Rates — Approved Live Asset Generation (NO AUTO POST)
+# User-approved Sunday publication asset; fetches fresh quotes, does not publish
 on:
   push:
     paths:
@@ -23,15 +23,15 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y fonts-lato
       - name: Install dependencies
         run: pip install -r daily-rates/requirements.txt
-      - name: Fetch LIVE quotes and render preview, never post
+      - name: Fetch LIVE quotes and render approved media, no social publishing
         env:
           CMC_API_KEY: ${{ secrets.CMC_API_KEY }}
-        run: python daily-rates/test_now.py
-      - name: Save test preview and audit for review
+        run: python daily-rates/live_once.py
+      - name: Save approved official image and validation audit
         run: |
           git config user.name "CoinoSwap Rates Bot"
           git config user.email "coinoswap-rates-bot@users.noreply.github.com"
-          git add docs/daily-rates/tests/
+          git add docs/daily-rates/2026-11-22.png docs/daily-rates/2026-11-22.json
           if git diff --cached --quiet; then exit 1; fi
-          git commit -m "Live Daily Rates preview (TEST ONLY; not published)"
+          git commit -m "Live Daily Rates image validated for approved publication (not yet posted)"
           git push
