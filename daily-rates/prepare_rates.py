@@ -74,7 +74,7 @@ def kraken():
 
 def main():
     now=datetime.now(SAST)
-    if now.hour!=11 or not 50<=now.minute<=56: raise Block('Outside 11:50-11:56 SAST')
+    if now.hour!=11 or not 56<=now.minute<=58: raise Block('Outside 11:56-11:58 SAST')
     key=os.environ.get('CMC_API_KEY','').strip()
     if not key: raise Block('CMC_API_KEY Actions secret missing')
     primary=cmc(key)
@@ -88,6 +88,14 @@ def main():
         display[sym]=a['usd']
         audits[sym]={'display_usd':round(a['usd'],2),'coinmarketcap':a,
                      'kraken':b,'deviation_pct':round(delta,5),'threshold_pct':limit}
+    # Require each actual source update time to be <=5 minutes old AT 12:00, not only when fetched.
+    target=now.replace(hour=12,minute=0,second=0,microsecond=0)
+    for sym in COINS:
+        for source_name,item in [('CoinMarketCap',primary[sym]),('Kraken',secondary[sym])]:
+            updated=datetime.fromisoformat(item['updated_sast'])
+            remaining=(target-updated).total_seconds()
+            if not 0<=remaining<=300:
+                raise Block(f'{sym} {source_name} data will be older than five minutes at 12:00')
     date=now.date().isoformat()
     out=Path('docs/daily-rates')
     out.mkdir(parents=True,exist_ok=True)
@@ -105,7 +113,7 @@ def main():
     try:
         strings=render(display,now,temp)
         completed=datetime.now(SAST)
-        if completed.date()!=now.date() or completed.hour!=11 or completed.minute>56:
+        if completed.date()!=now.date() or completed.hour!=11 or completed.minute>58:
             raise Block('Image completed after preparation cutoff')
         image_hash=hashlib.sha256(temp.read_bytes()).hexdigest()
         text=(f"Your {now.day} {now.strftime('%B')} crypto price check 📊\n"
