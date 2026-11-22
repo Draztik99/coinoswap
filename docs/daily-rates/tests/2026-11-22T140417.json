@@ -1,0 +1,66 @@
+{
+  "status": "TEST_ONLY_DO_NOT_PUBLISH",
+  "published": false,
+  "date_sast": "2026-11-22",
+  "checked_at_sast": "2026-11-22T14:04:18+02:00",
+  "prices": {
+    "BTC": {
+      "display_usd": 61058.13,
+      "coinmarketcap": {
+        "usd": 61058.12993306426,
+        "updated_sast": "2026-11-22T14:03:02+02:00",
+        "age_seconds": 74.9
+      },
+      "kraken": {
+        "usd": 61063.5,
+        "updated_sast": "2026-11-22T14:04:14+02:00",
+        "age_seconds": 2.8
+      },
+      "deviation_pct": 0.0088,
+      "threshold_pct": 1.0
+    },
+    "ETH": {
+      "display_usd": 1709.18,
+      "coinmarketcap": {
+        "usd": 1709.1788657943025,
+        "updated_sast": "2026-11-22T14:03:02+02:00",
+        "age_seconds": 74.9
+      },
+      "kraken": {
+        "usd": 1709.21,
+        "updated_sast": "2026-11-22T14:04:14+02:00",
+        "age_seconds": 2.6
+      },
+      "deviation_pct": 0.00182,
+      "threshold_pct": 1.0
+    },
+    "XMR": {
+      "display_usd": 486.13,
+      "coinmarketcap": {
+        "usd": 486.13155208874673,
+        "updated_sast": "2026-11-22T14:03:02+02:00",
+        "age_seconds": 74.9
+      },
+      "kraken": {
+        "usd": 485.45,
+        "updated_sast": "2026-11-22T14:02:47+02:00",
+        "age_seconds": 89.7
+      },
+      "deviation_pct": 0.1402,
+      "threshold_pct": 2.0
+    }
+  },
+  "display_prices": {
+    "BTC": "$61,058.13",
+    "ETH": "$1,709.18",
+    "XMR": "$486.13"
+  },
+  "image": {
+    "filename": "2026-11-22T140417.png",
+    "sha256": "f26bcceba24d1d1a8746f10a1356fa9410e5cf1205ee7ec12af50ca9b29cc919",
+    "width": 1536,
+    "height": 1024
+  },
+  "caption": "Your 22 November crypto price check 📊\n$BTC, $ETH and $XMR.\n\nNo need to jump between exchanges.\nCompare offers and swap in one place.\nNo account needed.\n\n👉 coinoswap.com\n\nIndicative USD prices checked at 14:04 SAST; actual swap quotes may differ.",
+  "warning": "Review preview only. Prices must be REFRESHED AND REVALIDATED before publishing. This workflow does not publish."
+}
