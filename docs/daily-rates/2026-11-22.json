@@ -1,0 +1,67 @@
+{
+  "status": "VALIDATED",
+  "approval_state": "PUBLICATION_APPROVED_NOT_YET_PUBLISHED",
+  "date_sast": "2026-11-22",
+  "checked_at_sast": "2026-11-22T14:06:42+02:00",
+  "expires_at_sast": "2026-11-22T14:10:05+02:00",
+  "coins": {
+    "BTC": {
+      "display_usd": 61051.71,
+      "coinmarketcap": {
+        "usd": 61051.712887237954,
+        "updated_sast": "2026-11-22T14:05:05+02:00",
+        "age_seconds": 96.0
+      },
+      "kraken": {
+        "usd": 61042.4,
+        "updated_sast": "2026-11-22T14:06:40+02:00",
+        "age_seconds": 1.0
+      },
+      "deviation_pct": 0.01525,
+      "threshold_pct": 1.0
+    },
+    "ETH": {
+      "display_usd": 1708.07,
+      "coinmarketcap": {
+        "usd": 1708.0723262418603,
+        "updated_sast": "2026-11-22T14:05:05+02:00",
+        "age_seconds": 96.0
+      },
+      "kraken": {
+        "usd": 1707.56,
+        "updated_sast": "2026-11-22T14:06:40+02:00",
+        "age_seconds": 0.6
+      },
+      "deviation_pct": 0.02999,
+      "threshold_pct": 1.0
+    },
+    "XMR": {
+      "display_usd": 486.13,
+      "coinmarketcap": {
+        "usd": 486.1302876095987,
+        "updated_sast": "2026-11-22T14:05:05+02:00",
+        "age_seconds": 96.0
+      },
+      "kraken": {
+        "usd": 485.99,
+        "updated_sast": "2026-11-22T14:06:32+02:00",
+        "age_seconds": 8.8
+      },
+      "deviation_pct": 0.02886,
+      "threshold_pct": 2.0
+    }
+  },
+  "display_prices": {
+    "BTC": "$61,051.71",
+    "ETH": "$1,708.07",
+    "XMR": "$486.13"
+  },
+  "image": {
+    "filename": "2026-11-22.png",
+    "sha256": "d99f3ea3bafcbe0e93f5a856a4d4e54545b760e4082dde1f6e4a5007dd924018",
+    "width": 1536,
+    "height": 1024
+  },
+  "caption": "Your 22 November crypto price check 📊\n$BTC, $ETH and $XMR.\n\nNo need to jump between exchanges.\nCompare offers and swap in one place.\nNo account needed.\n\n👉 coinoswap.com\n\nIndicative USD prices checked at 14:06 SAST; actual swap quotes may differ.",
+  "publication_note": "User explicitly authorized final live Facebook and Instagram test. Asset generation DOES NOT publish."
+}
