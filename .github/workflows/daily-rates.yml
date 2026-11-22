@@ -1,8 +1,8 @@
 name: CoinoSwap Daily Rates (Generate Only)
 on:
   schedule:
-    # UTC 09:50 = South Africa 11:50. Late jobs must fail closed.
-    - cron: "50 9 * * *"
+    # UTC 09:56 = South Africa 11:56. Deadline is 11:58; only market data fresh at 12:00 is valid.
+    - cron: "56 9 * * *"
   workflow_dispatch:
 permissions:
   contents: write
