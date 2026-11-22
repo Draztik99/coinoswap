@@ -11,7 +11,10 @@ CARDS={'BTC':(98,492,295),'ETH':(575,967,771),'XMR':(1047,1436,1243)}
 def render(prices,date,output):
     path=BASE/'assets'/'coinoswap_template.png'
     if not path.is_file(): raise ValueError('Official 1536x1024 template missing')
-    with Image.open(path) as raw: im=raw.convert('RGBA')
+    with Image.open(path) as raw:
+        if raw.format != 'PNG':
+            raise ValueError('Template file is not a genuine PNG; upload the original PNG')
+        im=raw.convert('RGBA')
     if im.size!=(1536,1024): raise ValueError('Unexpected template size')
     d=ImageDraw.Draw(im)
     d.rectangle((1215,87,1398,137),fill=(10,9,8,255))
