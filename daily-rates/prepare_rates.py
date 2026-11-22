@@ -5,6 +5,7 @@ from datetime import datetime,timezone,timedelta
 from zoneinfo import ZoneInfo
 import requests
 from render_rates import render
+from posting_slots import slot_for_date, expected_prepare_time
 
 SAST=ZoneInfo('Africa/Johannesburg')
 COINS={'BTC':(1,'XBTUSD',1.0),'ETH':(1027,'ETHUSD',1.0),'XMR':(328,'XMRUSD',2.0)}
@@ -80,7 +81,10 @@ def kraken():
 
 def main():
     now=datetime.now(SAST)
-    if now.hour!=11 or not 56<=now.minute<=58: raise Block('Outside 11:56-11:58 SAST')
+    target_hour,target_minute=slot_for_date(now.date())
+    prepare_hour,prepare_minute=expected_prepare_time(now.date())
+    if (now.hour,now.minute) != (prepare_hour,prepare_minute) and not (now.hour==prepare_hour and now.minute==prepare_minute+1):
+        raise Block(f'Outside selected fresh-quote window {prepare_hour:02}:{prepare_minute:02}-{(prepare_minute+1):02} SAST for {target_hour:02}:{target_minute:02} post')
     key=os.environ.get('CMC_API_KEY','').strip()
     if not key: raise Block('CMC_API_KEY Actions secret missing')
     primary=cmc(key)
@@ -94,14 +98,14 @@ def main():
         display[sym]=a['usd']
         audits[sym]={'display_usd':round(a['usd'],2),'coinmarketcap':a,
                      'kraken':b,'deviation_pct':round(delta,5),'threshold_pct':limit}
-    # Require each actual source update time to be <=5 minutes old AT 12:00, not only when fetched.
-    target=now.replace(hour=12,minute=0,second=0,microsecond=0)
+    # Prices must be fresh at the selected publication slot, not only at retrieval.
+    target=now.replace(hour=target_hour,minute=target_minute,second=0,microsecond=0)
     for sym in COINS:
         for source_name,item in [('CoinMarketCap',primary[sym]),('Kraken',secondary[sym])]:
             updated=datetime.fromisoformat(item['updated_sast'])
             remaining=(target-updated).total_seconds()
             if not 0<=remaining<=300:
-                raise Block(f'{sym} {source_name} data will be older than five minutes at 12:00')
+                raise Block(f'{sym} {source_name} data outside five-minute freshness range at {target_hour:02}:{target_minute:02}')
     date=now.date().isoformat()
     out=Path('docs/daily-rates')
     out.mkdir(parents=True,exist_ok=True)
@@ -119,16 +123,17 @@ def main():
     try:
         strings=render(display,now,temp)
         completed=datetime.now(SAST)
-        if completed.date()!=now.date() or completed.hour!=11 or completed.minute>58:
+        if completed.date()!=now.date() or completed >= target-timedelta(minutes=1):
             raise Block('Image completed after preparation cutoff')
         image_hash=hashlib.sha256(temp.read_bytes()).hexdigest()
         text=(f"Your {now.day} {now.strftime('%B')} crypto price check 📊\n"
               "$BTC, $ETH and $XMR.\n\nNo need to jump between exchanges.\n"
-              "Compare offers and swap in one place.\nNo account needed.\n\n"
+              "Compare offers and swap in one place.\n\nNo account needed.\n\n"
               "👉 coinoswap.com\n\n")
         record={'status':'VALIDATED','approval_state':'NOT_PUBLISHED',
                 'date_sast':date,'checked_at_sast':completed.isoformat(timespec='seconds'),
-                'target_sast':date+'T12:00:00+02:00','coins':audits,
+                'target_sast':target.isoformat(timespec='seconds'),'coins':audits,
+                'experiment':{'slot_sast':f'{target_hour:02}:{target_minute:02}','week_start_sast':(now.date()-timedelta(days=now.weekday())).isoformat()},
                 'image':{'filename':img.name,'sha256':image_hash,'width':1536,'height':1024},
                 'display_prices':strings,'caption':text}
         temp.rename(img)
