@@ -1,4 +1,5 @@
 name: CoinoSwap Daily Rates — One-Off Live Test (NO POST)
+# Second safe run after fixing CoinMarketCap v3 string success status
 on:
   push:
     paths:
