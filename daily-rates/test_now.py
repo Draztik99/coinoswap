@@ -44,8 +44,7 @@ def main():
         "$BTC, $ETH and $XMR.\n\n"
         "No need to jump between exchanges.\n"
         "Compare offers and swap in one place.\n"
-        "No account needed.\n\n👉 coinoswap.com\n\n"
-        f"Indicative USD prices checked at {checked_at:%H:%M} SAST; actual swap quotes may differ.")
+        "No account needed.\n\n👉 coinoswap.com\n\n")
     result={
        'status':'TEST_ONLY_DO_NOT_PUBLISH',
        'published':False,
