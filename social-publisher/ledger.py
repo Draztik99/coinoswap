@@ -128,3 +128,45 @@ class PublicationLedger:
                 conn.rollback()
                 raise LedgerError("missing record or unexpected current state")
             conn.commit()
+
+    def adopt_external_receipt(
+        self, platform: str, date_sast: str, campaign_key: str,
+        image_sha256: str, *, provider_post_id: str, public_url: str,
+        source: str = "metricool",
+    ) -> bool:
+        """Mark a verified external Metricool post as already published.
+
+        The caller MUST have independently verified the Metricool receipt.
+        Fails closed: even a previously RESERVED direct job is never overwritten.
+        """
+        from urllib.parse import urlsplit
+        key = _key(platform, date_sast, campaign_key)
+        if source != "metricool" or platform not in {"facebook", "instagram"}:
+            raise LedgerError("unsupported external publication source/platform")
+        if re.fullmatch(r"[0-9a-f]{64}", image_sha256) is None:
+            raise LedgerError("invalid image SHA-256")
+        if not isinstance(provider_post_id, str) or not provider_post_id.strip():
+            raise LedgerError("missing external provider post ID")
+        if not isinstance(public_url, str):
+            raise LedgerError("external public URL missing")
+        parts = urlsplit(public_url)
+        host = (parts.hostname or "").lower()
+        valid_hosts = (
+            {"facebook.com", "www.facebook.com", "m.facebook.com"} if platform == "facebook"
+            else {"instagram.com", "www.instagram.com"}
+        )
+        if parts.scheme != "https" or host not in valid_hosts or parts.username or parts.password:
+            raise LedgerError("external provider permalink invalid")
+        now = _utcnow()
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            cursor = conn.execute(
+                """INSERT OR IGNORE INTO posts
+                (platform,date_sast,campaign_key,image_sha256,request_id,state,
+                 provider_post_id,public_url,created_at_utc,updated_at_utc)
+                 VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (*key, image_sha256, "external:metricool", "PUBLISHED",
+                 provider_post_id, public_url, now, now),
+            )
+            conn.commit()
+            return cursor.rowcount == 1

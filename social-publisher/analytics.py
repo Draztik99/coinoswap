@@ -58,7 +58,12 @@ def normalize_metrics(platform: str, provider_record: dict) -> dict:
     if platform == "instagram" and result["link_clicks"] is not None:
         # Per-post website clicks cannot be inferred from profile visits.
         raise AnalyticsRejected("per-post Instagram outbound clicks not verified")
-    numerator = [result[name] for name in ("likes", "comments", "shares", "reposts")]
+    # Platform-specific interactions avoid double-counting shares and reposts.
+    interaction_fields = (
+        ("likes", "comments", "reposts") if platform == "x"
+        else ("likes", "comments", "shares")
+    )
+    numerator = [result[name] for name in interaction_fields]
     denom = result["impressions"] if result["impressions"] is not None else result["views"]
     result["engagement_rate"] = (
         (sum(numerator) / denom) if denom and all(n is not None for n in numerator) else None

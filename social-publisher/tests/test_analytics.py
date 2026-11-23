@@ -32,7 +32,8 @@ class AnalyticsTests(unittest.TestCase):
     def test_engagement_rate_only_when_all_counts_known(self):
         out = normalize_metrics("x",{"metric_source":"api","impressions":100,
             "likes":5,"comments":2,"shares":1,"reposts":2})
-        self.assertEqual(out["engagement_rate"],0.1)
+        # shares are not added to X reposts a second time
+        self.assertEqual(out["engagement_rate"],0.09)
 
     def test_negative_counts_rejected(self):
         with self.assertRaises(AnalyticsRejected):

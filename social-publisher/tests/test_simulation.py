@@ -52,9 +52,9 @@ class SimulationTests(unittest.TestCase):
             self.assertEqual(self.ledger.get(platform,DAY,"daily_rates")["state"], "UNKNOWN")
 
     def test_timeout_rate_limit_and_auth_do_not_repost(self):
-        for name in ("timeout_after_send", "http_401", "http_429", "http_500", "receipt_missing"):
+        for day_num, name in enumerate(("timeout_after_send", "http_401", "http_429", "http_500", "receipt_missing"), 1):
             with self.subTest(name=name):
-                day = f"2026-12-{len(name):02}"
+                day = f"2026-12-{day_num:02}"
                 first = simulate_publication(self.ledger, "x", day, SHA, MockOutcome(name))
                 second = simulate_publication(self.ledger, "x", day, SHA,
                                             MockOutcome("success","222","https://x.com/test/status/222"))
