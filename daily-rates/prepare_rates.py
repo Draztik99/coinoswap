@@ -81,9 +81,15 @@ def kraken():
 
 def main():
     now=datetime.now(SAST)
+    emergency=os.environ.get('EMERGENCY_RATES','').lower()=='true'
     target_hour,target_minute=slot_for_date(now.date())
     prepare_hour,prepare_minute=expected_prepare_time(now.date())
-    if not (prepare_hour*60+prepare_minute <= now.hour*60+now.minute < target_hour*60+target_minute-1):
+    if emergency:
+        # Manual recovery only. Target is 3 minutes after fresh quote retrieval begins.
+        recovery_target=(now+timedelta(minutes=3)).replace(second=0,microsecond=0)
+        if recovery_target.date()!=now.date(): raise Block('Emergency crosses SAST date')
+        target_hour,target_minute=recovery_target.hour,recovery_target.minute
+    if not emergency and not (prepare_hour*60+prepare_minute <= now.hour*60+now.minute < target_hour*60+target_minute-1):
         raise Block(f'Outside selected fresh-quote window {prepare_hour:02}:{prepare_minute:02} until one minute before target SAST for {target_hour:02}:{target_minute:02} post')
     key=os.environ.get('CMC_API_KEY','').strip()
     if not key: raise Block('CMC_API_KEY Actions secret missing')
