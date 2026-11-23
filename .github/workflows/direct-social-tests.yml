@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install test-only media dependency
+        run: pip install -r social-publisher/requirements-test.txt
       - name: Check isolated source syntax
         run: python -m compileall -q social-publisher
       - name: Run offline validation and idempotency tests

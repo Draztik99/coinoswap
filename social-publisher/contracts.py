@@ -57,9 +57,10 @@ def _https_image_url(value: str, *, extension: str) -> str:
         raise ContractRejected("private image URL host")
     try:
         ipaddress.ip_address(host)
-        raise ContractRejected("image URL must use a public DNS hostname")
     except ValueError:
         pass
+    else:
+        raise ContractRejected("image URL must use a public DNS hostname")
     if not re.fullmatch(r"[a-z0-9.-]+", host) or "." not in host or ".." in host:
         raise ContractRejected("malformed image URL host")
     if not parts.path.lower().endswith(extension) or parts.query:
