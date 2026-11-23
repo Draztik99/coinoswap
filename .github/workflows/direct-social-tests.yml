@@ -1,0 +1,25 @@
+name: CoinoSwap Direct Social - Offline Safety Tests (NO POST)
+on:
+  push:
+    branches:
+      - feature/direct-social-publishing
+    paths:
+      - "social-publisher/**"
+      - ".github/workflows/direct-social-tests.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  safety-tests:
+    if: github.ref == 'refs/heads/feature/direct-social-publishing'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check isolated source syntax
+        run: python -m compileall -q social-publisher
+      - name: Run offline validation and idempotency tests
+        run: python -m unittest discover -s social-publisher/tests -v
