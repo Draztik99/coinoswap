@@ -13,6 +13,7 @@
 - `daily-rates/prepare_rates.py` validates CoinMarketCap + Kraken BTC, ETH, XMR prices, freshness, source deviations (BTC/ETH 1%, XMR 2%) and duplicate *assets*. It generates `docs/daily-rates/YYYY-MM-DD.{png,json}` with image SHA-256.
 - `daily-rates/render_rates.py` renders an approved 1536×1024 PNG. Instagram may need its own approved JPEG derivative; keep the source image unchanged and hash any derivative separately.
 - The output audit is marked `VALIDATED` and `NOT_PUBLISHED`; publishing is outside this repository through ChatGPT–Metricool.
+- **Independent read-only Metricool check (2026-11-23):** CoinoSwap brand has Facebook, Instagram and YouTube connected; X was not listed on this brand. Metricool's planner reported the 2026-11-23 14:49 SAST Daily Rates post as **PUBLISHED** to both Facebook and Instagram, with public URLs. The GitHub audit's `NOT_PUBLISHED` state is not a contradiction: it tracks generation only. No scheduled content or automation was changed. These observations are a snapshot, not proof that future automated runs will succeed.
 - No direct social posting adapters, cross-platform idempotency ledger, social metrics collector, or website/swap attribution code exists in this repository.
 - The `daily-rates/README.md` describes an older fixed slot and should be corrected in a future reviewed PR, not as part of this isolation phase.
 - The default branch was shown as unprotected in the GitHub branch listing; confirm rulesets separately before rollout.
