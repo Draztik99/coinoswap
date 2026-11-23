@@ -83,8 +83,8 @@ def main():
     now=datetime.now(SAST)
     target_hour,target_minute=slot_for_date(now.date())
     prepare_hour,prepare_minute=expected_prepare_time(now.date())
-    if (now.hour,now.minute) != (prepare_hour,prepare_minute) and not (now.hour==prepare_hour and now.minute==prepare_minute+1):
-        raise Block(f'Outside selected fresh-quote window {prepare_hour:02}:{prepare_minute:02}-{(prepare_minute+1):02} SAST for {target_hour:02}:{target_minute:02} post')
+    if not (prepare_hour*60+prepare_minute <= now.hour*60+now.minute < target_hour*60+target_minute-1):
+        raise Block(f'Outside selected fresh-quote window {prepare_hour:02}:{prepare_minute:02} until one minute before target SAST for {target_hour:02}:{target_minute:02} post')
     key=os.environ.get('CMC_API_KEY','').strip()
     if not key: raise Block('CMC_API_KEY Actions secret missing')
     primary=cmc(key)
