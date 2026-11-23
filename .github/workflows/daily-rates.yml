@@ -7,6 +7,12 @@ on:
     - cron: "26,56 9-11 * * *"
     - cron: "26 12 * * *"
   workflow_dispatch:
+    inputs:
+      emergency:
+        description: 'One-time fresh generation outside randomized slot (manual only)'
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -23,6 +29,8 @@ jobs:
           python-version: "3.12"
       - name: Select today's randomized publishing slot
         id: slot
+        env:
+          EMERGENCY_RATES: ${{ github.event_name == 'workflow_dispatch' && inputs.emergency && 'true' || 'false' }}
         run: python daily-rates/should_prepare.py
       - if: steps.slot.outputs.selected == 'true'
         run: sudo apt-get update -qq && sudo apt-get install -y fonts-lato
@@ -32,6 +40,7 @@ jobs:
         if: steps.slot.outputs.selected == 'true'
         env:
           CMC_API_KEY: ${{ secrets.CMC_API_KEY }}
+          EMERGENCY_RATES: ${{ github.event_name == 'workflow_dispatch' && inputs.emergency && 'true' || 'false' }}
         run: python daily-rates/prepare_rates.py
       - name: Save dated image and audit
         if: steps.slot.outputs.selected == 'true'
