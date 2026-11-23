@@ -12,7 +12,7 @@ on:
         description: 'One-time fresh generation outside randomized slot (manual only)'
         required: false
         type: boolean
-        default: false
+        default: true
 permissions:
   contents: write
 concurrency:
@@ -30,7 +30,7 @@ jobs:
       - name: Select today's randomized publishing slot
         id: slot
         env:
-          EMERGENCY_RATES: ${{ github.event_name == 'workflow_dispatch' && inputs.emergency && 'true' || 'false' }}
+          EMERGENCY_RATES: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
         run: python daily-rates/should_prepare.py
       - if: steps.slot.outputs.selected == 'true'
         run: sudo apt-get update -qq && sudo apt-get install -y fonts-lato
