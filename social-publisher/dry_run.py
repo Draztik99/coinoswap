@@ -29,7 +29,10 @@ def main(argv: list[str] | None = None) -> int:
     now = datetime.now(SAST)
     if args.at_sast:
         try:
-            now = datetime.fromisoformat(args.at_sast).astimezone(SAST)
+            parsed = datetime.fromisoformat(args.at_sast)
+            if parsed.tzinfo is None or parsed.utcoffset() is None:
+                raise ValueError("timezone offset required")
+            now = parsed.astimezone(SAST)
         except (TypeError, ValueError) as exc:
             parser.error(f"invalid --at-sast: {exc}")
     try:
