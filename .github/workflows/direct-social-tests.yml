@@ -25,3 +25,11 @@ jobs:
         run: python -m compileall -q social-publisher
       - name: Run offline validation and idempotency tests
         run: python -m unittest discover -s social-publisher/tests -v
+      - name: Generate no-data analytics dashboard preview
+        run: python social-publisher/dashboard.py --output coinoswap-shadow-dashboard.html
+      - name: Upload dashboard preview artifact (NO LIVE DATA)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CoinoSwap-Shadow-Dashboard-Preview
+          path: coinoswap-shadow-dashboard.html
+          retention-days: 14
