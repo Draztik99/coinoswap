@@ -1,0 +1,53 @@
+name: CoinoSwap Facebook Recurring — Offline Release Tests (NO POST)
+on:
+  push:
+    branches:
+      - feature/activate-facebook-daily-rates-20261124
+      - main
+    paths:
+      - ".github/workflows/daily-rates.yml"
+      - ".github/workflows/facebook-readonly-health.yml"
+      - ".github/workflows/facebook-daily-publication-audit.yml"
+      - ".github/workflows/facebook-recurring-release-tests.yml"
+      - "daily-rates/tests/**"
+      - "social-publisher/live/tests/**"
+      - "social-publisher/live/check_daily_receipt.py"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Compile publication code with no credentials
+        run: python -m compileall -q daily-rates social-publisher/live social-publisher/asset_reader.py
+      - name: Test randomized generation, active Facebook gates and receipt watchdog
+        run: python -m unittest discover -s daily-rates/tests -v
+      - name: Test sender, one-time reservation and verified receipt (mock only)
+        run: python -m unittest discover -s social-publisher/live/tests -v
+      - name: Verify automated watchdog is GET/READ ONLY and no new social trigger
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          wf=Path(".github/workflows/daily-rates.yml").read_text()
+          tok=Path(".github/workflows/facebook-readonly-health.yml").read_text()
+          audit=Path(".github/workflows/facebook-daily-publication-audit.yml").read_text()
+          for text in (tok,audit):
+              assert "  schedule:" in text
+              assert "  workflow_dispatch:" in text
+              assert "if: github.ref == 'refs/heads/main'" in text
+              assert "  push:" not in text
+          assert "facebook_health.py --check" in tok
+          assert "COINOSWAP_FB_PAGE_ACCESS_TOKEN" in tok
+          assert "check_daily_receipt.py" in audit
+          assert "secrets." not in audit
+          assert "github.event_name == 'schedule'" in wf
+          assert "needs.prepare.outputs.asset_generated == 'true'" in wf
+          assert "publish_cli.py --publish" in wf
+          print("Release gates and both read-only monitors verified.")
+          PY
