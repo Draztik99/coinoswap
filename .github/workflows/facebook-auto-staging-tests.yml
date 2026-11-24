@@ -1,0 +1,26 @@
+name: CoinoSwap Facebook Auto Staging — OFFLINE Checks (NO POST)
+on:
+  push:
+    branches:
+      - feature/facebook-automatic-rates-disabled
+    paths:
+      - ".github/workflows/daily-rates.yml"
+      - ".github/workflows/facebook-auto-staging-tests.yml"
+      - "daily-rates/tests/test_disabled_facebook_auto.py"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review-auto-disabled:
+    if: github.ref == 'refs/heads/feature/facebook-automatic-rates-disabled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Verify offline automatic Facebook safety gates
+        run: python -m unittest discover -s daily-rates/tests -v
+      - name: Verify manual Facebook sender and receipt tests (mock only)
+        run: python -m unittest discover -s social-publisher/live/tests -v

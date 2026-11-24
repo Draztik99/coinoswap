@@ -22,6 +22,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   prepare:
+    outputs:
+      asset_generated: ${{ steps.save.outputs.asset_generated }}
+      asset_commit: ${{ steps.save.outputs.asset_commit }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -53,6 +56,7 @@ jobs:
           EMERGENCY_RATES: ${{ github.event_name == 'workflow_dispatch' && inputs.emergency == true && 'true' || 'false' }}
         run: python daily-rates/prepare_rates.py
       - name: Save dated image and audit
+        id: save
         if: steps.slot.outputs.selected == 'true'
         run: |
           git config user.name "CoinoSwap Rates Bot"
@@ -61,3 +65,51 @@ jobs:
           if git diff --cached --quiet; then exit 1; fi
           git commit -m "Daily Rates verified $(TZ=Africa/Johannesburg date +%Y-%m-%d)"
           git push
+          echo "asset_generated=true" >> "$GITHUB_OUTPUT"
+          echo "asset_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  publish-facebook:
+    # HARD DISABLED until separate explicit approval for recurring Facebook
+    # posts. Do not remove the literal "false" without release sign-off.
+    # Existing Metricool Instagram automation remains entirely independent.
+    if: ${{ false && github.event_name == 'schedule' && needs.prepare.outputs.asset_generated == 'true' && needs.prepare.result == 'success' }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    environment: facebook-live
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.asset_commit }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Wait for the official SAST publication time (NO POST)
+        run: |
+          day=$(TZ=Africa/Johannesburg date +%F)
+          python social-publisher/live/wait_for_rates_target.py --audit "docs/daily-rates/$day.json"
+      - name: Publish verified Facebook photo exactly once (NO RETRIES)
+        env:
+          SOURCE_SHA: ${{ needs.prepare.outputs.asset_commit }}
+          APPROVAL_PHRASE: "I_APPROVE_SINGLE_COINOSWAP_FB_POST"
+          COINOSWAP_FB_PAGE_ACCESS_TOKEN: ${{ secrets.COINOSWAP_FB_PAGE_ACCESS_TOKEN }}
+          COINOSWAP_FB_LIVE_ENABLED: "true"
+          COINOSWAP_METRICOOL_FB_DISABLED: "confirmed"
+        run: |
+          python social-publisher/live/publish_cli.py --publish --commit-sha "$SOURCE_SHA" | tee "$RUNNER_TEMP/coinoswap_fb_verified_result.json"
+      - name: Commit independently verified Facebook receipt (NO POST)
+        env:
+          SOURCE_SHA: ${{ needs.prepare.outputs.asset_commit }}
+        run: |
+          day=$(TZ=Africa/Johannesburg date +%F)
+          python social-publisher/live/publication_receipt.py \
+            --result-json "$RUNNER_TEMP/coinoswap_fb_verified_result.json" \
+            --audit-json "docs/daily-rates/$day.json" \
+            --source-commit "$SOURCE_SHA" \
+            --github-run-id "$GITHUB_RUN_ID"
+          git config user.name "CoinoSwap Rates Bot"
+          git config user.email "coinoswap-rates-bot@users.noreply.github.com"
+          git add "docs/daily-rates/facebook-publications/$day.json"
+          git commit -m "Record verified direct Facebook Daily Rates post $day"
+          git push origin HEAD:main
