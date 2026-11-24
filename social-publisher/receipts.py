@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 from contracts import ContractRejected, RequestSpec, META_API_VERSION
+from facebook_page_auth import COINOSWAP_PAGE_ID
 
 
 @dataclass(frozen=True)
@@ -49,7 +50,7 @@ def facebook_verify_spec(photo_id: str) -> RequestSpec:
     return RequestSpec(
         "facebook","verify_photo","GET",
         f"https://graph.facebook.com/{META_API_VERSION}/"+_number(photo_id,"FB photo ID"),
-        {"fields":"id,page_story_id,link"},
+        {"fields":"id,page_story_id,link,from{id}"},
     )
 
 
@@ -73,13 +74,22 @@ def verify_x_post(expected_id: str, expected_author_id: str, author_handle: str,
     return VerifiedReceipt("x",expected_id, f"https://x.com/{author_handle}/status/{expected_id}")
 
 
-def verify_facebook_photo(expected_photo_id: str, response: dict) -> VerifiedReceipt:
+def verify_facebook_photo(
+    expected_photo_id: str, response: dict, *, expected_post_id: str | None = None
+) -> VerifiedReceipt:
     photo_id=_number(expected_photo_id,"FB photo ID")
     if not isinstance(response,dict) or response.get("id")!=photo_id:
         raise ContractRejected("Facebook photo not confirmed")
     story_id=response.get("page_story_id")
     if not isinstance(story_id,str) or not re.fullmatch(r"[0-9]+_[0-9]+",story_id):
         raise ContractRejected("Facebook Page post is not verified")
+    if not story_id.startswith(COINOSWAP_PAGE_ID + "_"):
+        raise ContractRejected("Facebook photo belongs to the wrong Page")
+    owner = response.get("from")
+    if not isinstance(owner, dict) or owner.get("id") != COINOSWAP_PAGE_ID:
+        raise ContractRejected("Facebook photo ownership not confirmed")
+    if expected_post_id is not None and story_id != expected_post_id:
+        raise ContractRejected("Facebook post receipt mismatched upload response")
     link=_permalink(response.get("link"),{"facebook.com","www.facebook.com","m.facebook.com"})
     return VerifiedReceipt("facebook",story_id,link)
 
