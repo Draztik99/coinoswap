@@ -1,0 +1,20 @@
+name: CoinoSwap Facebook — Read-Only Token Health (NO POST)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-meta-token:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: facebook-live
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Verify CoinoSwap Facebook Page identity — GET ONLY
+        env:
+          COINOSWAP_FB_PAGE_ACCESS_TOKEN: ${{ secrets.COINOSWAP_FB_PAGE_ACCESS_TOKEN }}
+        run: python social-publisher/facebook_health.py --check
