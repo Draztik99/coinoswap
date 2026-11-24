@@ -82,4 +82,18 @@ jobs:
           COINOSWAP_METRICOOL_FB_DISABLED: ${{ inputs.metricool_facebook_disabled == true && 'confirmed' || 'false' }}
         run: |
           sha=$(git rev-parse HEAD)
-          python social-publisher/live/publish_cli.py --publish --commit-sha "$sha"
+          python social-publisher/live/publish_cli.py --publish --commit-sha "$sha" | tee "$RUNNER_TEMP/coinoswap_fb_verified_result.json"
+      - name: Persist separately verified Facebook publication receipt (NO POST)
+        run: |
+          day=$(TZ=Africa/Johannesburg date +%F)
+          sha=$(git rev-parse HEAD)
+          python social-publisher/live/publication_receipt.py \
+            --result-json "$RUNNER_TEMP/coinoswap_fb_verified_result.json" \
+            --audit-json "docs/daily-rates/$day.json" \
+            --source-commit "$sha" \
+            --github-run-id "$GITHUB_RUN_ID"
+          git config user.name "CoinoSwap Rates Bot"
+          git config user.email "coinoswap-rates-bot@users.noreply.github.com"
+          git add "docs/daily-rates/facebook-publications/$day.json"
+          git commit -m "Record independently verified Facebook Daily Rates post $day"
+          git push origin HEAD:main
