@@ -1,0 +1,32 @@
+name: CoinoSwap Facebook — One-Time LIVE API Test (MANUAL ONLY)
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Type I_APPROVE_ONE_LIVE_COINOSWAP_TEST_POST to create one public test post"
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: coinoswap-facebook-one-time-test
+  cancel-in-progress: false
+jobs:
+  test-facebook-api:
+    if: github.ref == 'refs/heads/main' && inputs.approval == 'I_APPROVE_ONE_LIVE_COINOSWAP_TEST_POST'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    environment: facebook-live
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: One approved, clearly labeled Facebook text test (NO RETRIES)
+        env:
+          TEST_APPROVAL: ${{ inputs.approval }}
+          COINOSWAP_FB_PAGE_ACCESS_TOKEN: ${{ secrets.COINOSWAP_FB_PAGE_ACCESS_TOKEN }}
+          COINOSWAP_FB_TEST_ENABLED: ${{ vars.COINOSWAP_FB_TEST_ENABLED }}
+        run: python social-publisher/live/facebook_one_time_test.py
