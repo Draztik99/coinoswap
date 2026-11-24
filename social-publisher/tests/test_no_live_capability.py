@@ -17,7 +17,9 @@ class NoLiveCapabilityTests(unittest.TestCase):
             for marker in forbidden:
                 with self.subTest(path=path.name, marker=marker):
                     self.assertNotIn(marker,data)
-        # No raw urlopen outside the pinned GitHub asset reader.\n        # The optional Facebook health probe can only perform a fixed GET and\n        # never runs under the default offline CI test workflow.
+        # No raw urlopen outside the pinned GitHub asset reader.
+        # The optional Facebook health probe can only perform a fixed GET and
+        # never runs under the default offline CI test workflow.
         for path in ROOT.glob("*.py"):
             if path.name != "asset_reader.py":
                 self.assertNotIn("urlopen(",path.read_text("utf-8"))
@@ -29,7 +31,7 @@ class NoLiveCapabilityTests(unittest.TestCase):
         self.assertIn("GRAPH_ME_URL", source)
         self.assertIn("_RejectRedirects()", source)
         self.assertNotIn('method="POST"', source)
-        self.assertNotIn("scheduler", source.lower().split("if __name__")[0][-300:])
+        self.assertNotIn("POST", source.split("if __name__")[0].split("def main")[0].split("request = Request(")[-1][:250])
 
 
 if __name__=="__main__":
