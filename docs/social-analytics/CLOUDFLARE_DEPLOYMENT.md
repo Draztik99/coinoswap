@@ -37,6 +37,8 @@ Set the following build configuration (no npm packages, no application server):
 | Root directory | \`/\` (repository root) |
 | Build command | \`python3 social-publisher/insights/cloudflare_build.py\` |
 | Build output directory | \`dist\` |
+| Build environment: PYTHON_VERSION | 3.12.10 (pin to tested Python 3.12 branch) |
+| Build environment: SKIP_DEPENDENCY_INSTALL | 1 (stdlib-only; avoid unnecessary package installation) |
 | Initially configure \`COINOSWAP_TEAM_ACCESS_VERIFIED\`? | **No. Leave absent / false.** |
 | Preview branch deployments | **None / disabled** until preview Access is configured |
 | GitHub App authorization | **Only Draztik99/coinoswap** |
