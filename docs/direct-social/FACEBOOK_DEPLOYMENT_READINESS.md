@@ -58,8 +58,9 @@ This command can fail closed on expired assets or an unavailable pinned pair. A 
 4. **Cross-publisher reconciliation**: authoritative checks of Metricool post state plus Facebook published post readback, before and after each attempted post; stale/missing/ambiguous API results must BLOCK. No blind resend on timeout.
 5. **Real sender adapter**: separately reviewed code using Page `POST /{page-id}/photos` and separate GET verification. Must be fully disconnected/disabled until live approval and cutover, with a hard kill switch and monitored alerts.
 6. **Release process**: at least seven clean shadow days, token validity monitoring, error injection (400/401/403/429/500/timeouts), DB collision tests, complete audits/receipts and rollback rehearsal.
-7. **Explicit Facebook-only cutover approval**: remove Metricool as *live Facebook campaign publisher* only after the replacement is ready; preserve Instagram via Metricool. Prevent duplicate schedule overlap.
-8. **No Instagram or X changes** as part of Facebook-only scope.
+7. **Managed ledger deployment**: migrate `social-publisher/postgres_schema.sql` to an authorized database; inject DB connections into `pg_ledger.py` on a secure worker; prove transactional collisions using a real PostgreSQL integration test. Current tests use a fake DB only.
+8. **Explicit Facebook-only cutover approval**: remove Metricool as *live Facebook campaign publisher* only after the replacement is ready; preserve Instagram via Metricool. Prevent duplicate schedule overlap.
+9. **No Instagram or X changes** as part of Facebook-only scope.
 
 ## Security & operational design decisions
 
