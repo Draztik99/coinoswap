@@ -177,7 +177,8 @@ class PostgresLedgerTests(unittest.TestCase):
         code = (Path(__file__).resolve().parents[1] / "pg_ledger.py").read_text()
         self.assertNotIn("requests.post(", code)
         self.assertNotIn("urlopen(", code)
-        self.assertNotIn("access_token", code)
+        self.assertNotIn("os.environ", code)
+        self.assertNotIn("Authorization", code)
 
 
 if __name__ == "__main__":
