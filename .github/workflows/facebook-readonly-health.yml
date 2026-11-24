@@ -1,5 +1,9 @@
 name: CoinoSwap Facebook — Read-Only Token Health (NO POST)
 on:
+  # Read-only token readiness check at 11:00 SAST, before all eligible
+  # 11:30–14:30 daily publishing slots. GitHub cron is best-effort.
+  schedule:
+    - cron: "0 9 * * *"
   workflow_dispatch:
 permissions:
   contents: read
