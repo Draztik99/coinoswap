@@ -29,7 +29,11 @@ class WorkflowIsolationTests(unittest.TestCase):
         self.assertNotRegex(wf, r"(?m)^\s+schedule:\s*$")
         self.assertNotIn("repository_dispatch:", wf)
         self.assertNotIn("secrets.", wf)
-        self.assertNotRegex(wf, r"(?m)^\s+env:\s*$")
+        # The only environment data is for a disposable CI PostgreSQL fixture.
+        self.assertIn("COINOSWAP_TEST_PG_DSN:", wf)
+        self.assertNotIn("COINOSWAP_FB_PAGE_ACCESS_TOKEN", wf)
+        self.assertNotIn("META_APP_SECRET", wf)
+        self.assertNotIn("METRICOOL_API_KEY", wf)
         self.assertNotIn("environment:", wf)
         self.assertNotIn("workflow_run:", wf)
         self.assertNotRegex(wf, r"(?m)^\s+uses:.*(facebook|metricool|instagram)", wf)
