@@ -108,6 +108,55 @@ class FacebookHealthTests(unittest.TestCase):
                 self.assertNotIn(SECRET, repr(result))
                 self.assertNotIn("private", repr(result))
 
+    def test_safely_classifies_meta_token_expiry_codes(self):
+        cases = [
+            (401, 190, 463, "TOKEN_EXPIRED"),
+            (401, 190, 467, "TOKEN_INVALID"),
+            (401, 190, 460, "REAUTH_REQUIRED"),
+            (403, 200, None, "AUTH_REJECTED"),
+        ]
+        for http_status, code, subcode, expected in cases:
+            with self.subTest(expected=expected):
+                payload = {
+                    "error": {
+                        "code": code,
+                        "message": SECRET + " dangerous provider text",
+                        "fbtrace_id": "PRIVATE_TRACE",
+                    }
+                }
+                if subcode is not None:
+                    payload["error"]["error_subcode"] = subcode
+                error = HTTPError(
+                    GRAPH_ME_URL, http_status, SECRET, {},
+                    io.BytesIO(__import__("json").dumps(payload).encode())
+                )
+                result = check_page_token(
+                    environ={TOKEN_ENV: SECRET}, opener=FakeOpener(error=error)
+                )
+                self.assertEqual(result.status, expected)
+                self.assertEqual(result.http_status, http_status)
+                self.assertEqual(result.meta_error_code, code)
+                self.assertEqual(result.meta_error_subcode, subcode)
+                self.assertNotIn(SECRET, repr(result))
+                self.assertNotIn("PRIVATE_TRACE", repr(result))
+                self.assertNotIn("dangerous provider text", repr(result))
+
+    def test_invalid_meta_response_never_echoed(self):
+        for response in (
+            b"bad provider body " + SECRET.encode(),
+            b" " * 4097,
+            b'{"error":{"code":true,"error_subcode":"463"}}',
+            b'{"error":{"code":190,"error_subcode":2147483648}}',
+        ):
+            error = HTTPError(GRAPH_ME_URL, 401, SECRET, {}, io.BytesIO(response))
+            result = check_page_token(
+                environ={TOKEN_ENV: SECRET}, opener=FakeOpener(error=error)
+            )
+            self.assertEqual(result.status, "AUTH_REJECTED")
+            self.assertNotIn(SECRET, repr(result))
+            self.assertNotIn("provider body", repr(result))
+
+
     def test_network_failure_redacted_and_not_retried(self):
         for error in (URLError(SECRET), TimeoutError(SECRET), ValueError(SECRET)):
             opener = FakeOpener(error=error)

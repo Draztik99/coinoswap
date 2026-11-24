@@ -1,5 +1,12 @@
 name: CoinoSwap Facebook — Read-Only Token Health (NO POST)
 on:
+  # A safe, one-off diagnostic whenever THIS health probe is updated on main.
+  # This uses only Meta GET and cannot publish or rotate credentials.
+  push:
+    branches: [main]
+    paths:
+      - "social-publisher/facebook_health.py"
+      - ".github/workflows/facebook-readonly-health.yml"
   # Read-only token readiness check at 11:00 SAST, before all eligible
   # 11:30–14:30 daily publishing slots. GitHub cron is best-effort.
   schedule:

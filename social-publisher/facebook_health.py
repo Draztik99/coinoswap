@@ -38,7 +38,11 @@ class HealthResult:
     status: str
     reason: str
     page_id: str | None = None
-    # No token, upstream error text or request headers in this output.
+    http_status: int | None = None
+    meta_error_code: int | None = None
+    meta_error_subcode: int | None = None
+    # Only numeric HTTP + Meta error classifications; never raw provider messages,
+    # tokens, trace IDs, upstream URLs, or request headers.
 
 
 def _safe_token(value: object) -> bool:
@@ -48,6 +52,48 @@ def _safe_token(value: object) -> bool:
         and value == value.strip()
         and not any(ord(char) < 33 or ord(char) == 127 for char in value)
     )
+
+
+def _safe_meta_error(error: HTTPError) -> tuple[int | None, int | None]:
+    """Extract only documented numeric Meta error codes, never provider text.
+
+    Meta HTTP 400/401/403 response bodies can contain credentials, tokens,
+    trace IDs and personal content. Read at most 4 KiB and discard everything
+    except bounded numeric error.code and error.error_subcode fields.
+    """
+    try:
+        body = error.read(4097)
+        if len(body) > 4096:
+            return None, None
+        outer = json.loads(body.decode("utf-8"))
+        entry = outer.get("error") if isinstance(outer, dict) else None
+        if not isinstance(entry, dict):
+            return None, None
+        def numeric(value):
+            return (value if type(value) is int and 0 <= value <= 2_147_483_647
+                    else None)
+        return numeric(entry.get("code")), numeric(entry.get("error_subcode"))
+    except (OSError, ValueError, UnicodeError, TypeError, AttributeError):
+        return None, None
+
+
+def _classify_auth(status: int, code: int | None,
+                   subcode: int | None) -> HealthResult:
+    if code == 190 and subcode == 463:
+        return HealthResult("TOKEN_EXPIRED", "Meta reports expired access credentials",
+                            http_status=status, meta_error_code=code,
+                            meta_error_subcode=subcode)
+    if code == 190 and subcode == 467:
+        return HealthResult("TOKEN_INVALID", "Meta reports invalid or revoked credentials",
+                            http_status=status, meta_error_code=code,
+                            meta_error_subcode=subcode)
+    if subcode in {458, 459, 460, 464, 492}:
+        return HealthResult("REAUTH_REQUIRED", "Meta requires app/Page access review",
+                            http_status=status, meta_error_code=code,
+                            meta_error_subcode=subcode)
+    return HealthResult("AUTH_REJECTED", "Meta rejected Page token or access",
+                        http_status=status, meta_error_code=code,
+                        meta_error_subcode=subcode)
 
 
 def check_page_token(
@@ -97,7 +143,8 @@ def check_page_token(
         if exc.code in (301, 302, 303, 307, 308):
             return HealthResult("REDIRECT_BLOCKED", "Unexpected Meta redirect refused")
         if exc.code in (400, 401, 403):
-            return HealthResult("AUTH_REJECTED", "Meta rejected Page token or access")
+            code, subcode = _safe_meta_error(exc)
+            return _classify_auth(exc.code, code, subcode)
         if exc.code == 429:
             return HealthResult("RATE_LIMITED", "Meta rate limit; no retry attempted")
         return HealthResult("API_ERROR", "Meta returned a non-success status")
