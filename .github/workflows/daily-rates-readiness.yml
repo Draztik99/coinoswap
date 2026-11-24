@@ -1,0 +1,21 @@
+name: CoinoSwap Daily Rates — Missing Source Alarm (NO POST)
+on:
+  # One read-only post-window audit. Existing ChatGPT 14:59 SAST watcher
+  # remains an independent fallback if GitHub schedule is delayed/dropped.
+  schedule:
+    - cron: "41 12 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-source:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Verify current SAST Daily Rates source (NO POST)
+        run: python daily-rates/check_source.py
