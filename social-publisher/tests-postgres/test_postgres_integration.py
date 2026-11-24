@@ -38,7 +38,7 @@ class PostgresIntegrationTests(unittest.TestCase):
             for statement in schema.split(";"):
                 if statement.strip():
                     conn.execute(statement)
-        cls.factory = lambda: psycopg.connect(cls.dsn, connect_timeout=5)
+        cls.factory = staticmethod(lambda: psycopg.connect(cls.dsn, connect_timeout=5))
 
     def setUp(self):
         with self.factory() as conn:
