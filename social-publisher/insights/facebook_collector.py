@@ -13,7 +13,7 @@ import ssl
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit, parse_qs
 from urllib.request import Request, build_opener, HTTPSHandler, ProxyHandler, HTTPRedirectHandler
 from urllib.error import HTTPError, URLError
 from zoneinfo import ZoneInfo
@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from facebook_health import GRAPH_ME_URL, _safe_token, _RejectRedirects
 from facebook_page_auth import confirm_page_token_identity
 from contracts import ContractRejected, META_API_VERSION
+from receipts import facebook_verify_spec, verify_facebook_photo
 from model import SAST, PAGE_ID, AnalyticsError, facebook_post_snapshot
 
 RECEIPT_DIR = Path("docs/daily-rates/facebook-publications")
@@ -81,6 +82,26 @@ def _receipt(path: Path, *, now: datetime) -> dict | None:
     return obj
 
 
+def _read_verified_photo(opener, receipt: dict, token: str) -> tuple[dict, str]:
+    """Proven Meta photo readback: same endpoint as the live publisher receipt."""
+    link = receipt.get("public_url")
+    if not isinstance(link, str):
+        raise CollectorUnavailable("Facebook receipt URL missing")
+    parts = urlsplit(link)
+    if parts.scheme != "https" or parts.hostname not in {"facebook.com", "www.facebook.com", "m.facebook.com"}:
+        raise CollectorUnavailable("Facebook receipt host invalid")
+    keys = parse_qs(parts.query)
+    fbids = keys.get("fbid", [])
+    if len(fbids) != 1 or not fbids[0].isdigit() or len(fbids[0]) > 25:
+        raise CollectorUnavailable("verified Facebook photo ID unavailable")
+    photo_id = fbids[0]
+    spec = facebook_verify_spec(photo_id)
+    url = spec.url + "?" + urlencode(spec.body)
+    response = graph_get(opener, url=url, token=token, allowlist={url})
+    verify_facebook_photo(photo_id, response, expected_post_id=receipt["provider_post_id"])
+    return response, photo_id
+
+
 def collect(*, token: str, now: datetime, root: Path = RECEIPT_DIR,
             output: Path = OUTPUT_DIR, opener=None) -> dict:
     if not _safe_token(token):
@@ -111,14 +132,39 @@ def collect(*, token: str, now: datetime, root: Path = RECEIPT_DIR,
         pid = receipt["provider_post_id"]
         url = f"https://graph.facebook.com/{META_API_VERSION}/{pid}?" + urlencode({"fields":POST_FIELDS})
         insight_url = f"https://graph.facebook.com/{META_API_VERSION}/{pid}/insights?" + urlencode({"metric":METRIC})
+        photo_id = None
+        fallback = False
         try:
             post = graph_get(opener, url=url, token=token, allowlist={url})
         except (HTTPError, URLError, OSError, TimeoutError, ValueError,
                 UnicodeError, json.JSONDecodeError, CollectorUnavailable):
-            # Fail: claiming an analytics snapshot without validating the post
-            # would misrepresent its provenance.
-            raise CollectorUnavailable("Meta post readback failed; no analytics committed") from None
+            # Graph Page-post metrics may reject a photo-backed Page story.
+            # The actual live publisher already proved that PHOTO readback works.
+            try:
+                photo, photo_id = _read_verified_photo(opener, receipt, token)
+            except (HTTPError, URLError, OSError, TimeoutError, ValueError,
+                    UnicodeError, json.JSONDecodeError, CollectorUnavailable,
+                    ContractRejected):
+                raise CollectorUnavailable("Meta photo and post readback unavailable; no analytics saved") from None
+            fallback = True
+            # Only construct the Page post identity from a verified photo story.
+            post = {"id": photo["page_story_id"], "from": photo["from"]}
+            count_fields = "id,reactions.limit(0).summary(true),comments.limit(0).summary(true),shares"
+            counts_url = (f"https://graph.facebook.com/{META_API_VERSION}/{photo_id}?"
+                          + urlencode({"fields":count_fields}))
+            try:
+                counts = graph_get(opener, url=counts_url, token=token, allowlist={counts_url})
+                if counts.get("id") == photo_id:
+                    post.update({key:counts[key] for key in ("reactions", "comments", "shares")
+                                 if key in counts})
+            except (HTTPError, URLError, OSError, TimeoutError, ValueError,
+                    UnicodeError, json.JSONDecodeError, CollectorUnavailable):
+                # Unknown counts intentionally remain NULL, never zero.
+                pass
         insights = None
+        insights_target = photo_id if fallback else pid
+        insight_url = (f"https://graph.facebook.com/{META_API_VERSION}/{insights_target}/insights?"
+                       + urlencode({"metric":METRIC}))
         try:
             insights = graph_get(opener, url=insight_url, token=token, allowlist={insight_url})
         except (HTTPError, URLError, OSError, TimeoutError, ValueError,
@@ -127,6 +173,8 @@ def collect(*, token: str, now: datetime, root: Path = RECEIPT_DIR,
             pass
         try:
             snap = facebook_post_snapshot(post, receipt, collected_at=now, media_insights=insights)
+            if fallback:
+                snap["source"] = "Meta Graph API v27.0 verified photo readback"
         except AnalyticsError:
             raise CollectorUnavailable("provider metrics failed provenance validation") from None
         prepared.append((destination, snap))
