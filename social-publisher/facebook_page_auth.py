@@ -82,3 +82,32 @@ def audit_page_access(
         has_page_access_token=has_token,
         can_proceed_to_safe_token_verification=can_create and has_token,
     )
+
+
+def page_identity_lookup_spec() -> RequestSpec:
+    """Read-only identity check for a token already selected as a Page token."""
+    return RequestSpec(
+        "facebook",
+        "verify_page_token_identity",
+        "GET",
+        f"https://graph.facebook.com/{META_API_VERSION}/me",
+        {"fields": "id,name"},
+    )
+
+
+def confirm_page_token_identity(
+    response: dict[str, Any], *, page_id: str = COINOSWAP_PAGE_ID
+) -> str:
+    """Return a public Page name only if /me identifies the required Page.
+
+    A successful GET identifies the token subject; it does NOT establish
+    token lifetime, app live-mode approval or permission to publish.
+    """
+    if not isinstance(response, dict) or response.get("error") is not None:
+        raise ContractRejected("Facebook Page token identity check failed")
+    if response.get("id") != page_id:
+        raise ContractRejected("Facebook Page token belongs to a different Page")
+    name = response.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise ContractRejected("Facebook Page token returned an invalid Page name")
+    return name.strip()
