@@ -7,9 +7,10 @@ on:
     paths:
       - "social-publisher/facebook_health.py"
       - ".github/workflows/facebook-readonly-health.yml"
-  # Read-only token readiness check at 11:00 SAST, before all eligible
-  # 11:30–14:30 daily publishing slots. GitHub cron is best-effort.
+  # Two GET-only checks: 10:30 and 11:00 SAST, before the earliest
+  # 11:30 randomized publication slot. GitHub cron is best-effort.
   schedule:
+    - cron: "30 8 * * *"
     - cron: "0 9 * * *"
   workflow_dispatch:
 permissions:
