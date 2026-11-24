@@ -131,6 +131,31 @@ def _slot_label(post):
     # Don't falsely credit late/manual posts to the randomized slot.
     return selected if selected==actual else "Manual / off-slot"
 
+def _latest_sync(posts: list[dict], *, platform: str, now: datetime) -> str:
+    stamps=[]
+    for item in posts:
+        if item.get("platform") != platform:
+            continue
+        raw=item.get("collected_at_sast")
+        if raw is None:
+            continue
+        try:
+            stamp_value=datetime.fromisoformat(raw)
+            if stamp_value.tzinfo is None or stamp_value.utcoffset() is None:
+                raise ValueError()
+            stamps.append(stamp_value.astimezone(SAST))
+        except (TypeError,ValueError,AttributeError) as exc:
+            raise AnalyticsError("invalid metrics freshness timestamp") from exc
+    if not stamps:
+        return "No metrics collected"
+    latest=max(stamps)
+    seconds=(now-latest).total_seconds()
+    if seconds < -60:
+        raise AnalyticsError("future metrics timestamp")
+    status="STALE" if seconds > 36*3600 else "Current"
+    return f"{latest:%Y-%m-%d %H:%M} SAST · {status}"
+
+
 def _card(label,number,note):
     return (f'<div class="card"><div class="card-label">{_esc(label)}</div>'
             f'<div class="card-value">{_esc(number)}</div><div class="note">{_esc(note)}</div></div>')
@@ -152,6 +177,8 @@ def render(*, posts: list[dict], now: datetime) -> str:
         _card("Posts with metric snapshots",f"{measured} / {len(posts)}","Missing values never become zero"),
         _card("Highest 24h+ post reach",best_txt,"Mature posts with actual reach only"),
     ]))
+    fb_sync = _latest_sync(posts,platform="facebook",now=now)
+    ig_sync = _latest_sync(posts,platform="instagram",now=now)
     table=[]
     for p in posts[:90]:
         date=p["date_sast"]
@@ -164,6 +191,11 @@ def render(*, posts: list[dict], now: datetime) -> str:
         platform=p["platform"].title()
         age=(now-_timestamp(p)).total_seconds()/3600
         maturity="24h+" if age>=24 else "New (<24h)"
+        last_sync=p.get("collected_at_sast")
+        sync_label=(datetime.fromisoformat(last_sync).astimezone(SAST).strftime("%Y-%m-%d %H:%M")
+                    if last_sync else "N/A")
+        if last_sync and (now-datetime.fromisoformat(last_sync).astimezone(SAST)).total_seconds()>36*3600:
+            sync_label+=" · STALE"
         table.append(
             "<tr><td>"+_esc(platform)+"</td><td>"+_esc(date_label)+"</td>"
             "<td>"+_esc(_slot_label(p))+"</td>"
@@ -174,7 +206,7 @@ def render(*, posts: list[dict], now: datetime) -> str:
             "<td>"+_esc(maturity)+"</td>"
             '<td><a href="'+_esc(p["public_url"])+'" target="_blank" rel="noopener noreferrer">View post</a></td></tr>'
         )
-    table_html="".join(table) if table else '<tr><td colspan="9">No verified posts yet. Metrics will appear after collection.</td></tr>'
+    table_html="".join(table) if table else '<tr><td colspan="10">No verified posts yet. Metrics will appear after collection.</td></tr>'
     template="""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CoinoSwap | Social Analytics</title>
@@ -198,9 +230,10 @@ footer{margin-top:30px;color:#9c978d;font-size:12px}
 <p class="muted">Updated __ASOF__ · Africa/Johannesburg</p></div><span class="pill">READ-ONLY · VERIFIED DATA</span></div>
 <div class="grid">__CARDS__</div>
 <h2>Publication performance</h2>
+<p class="muted">Facebook latest metrics: __FB_SYNC__ · Instagram latest metrics: __IG_SYNC__</p>
 <div class="table-scroll"><table><thead><tr>
 <th>Platform</th><th>Published SAST</th><th>Selected daily slot</th>
-<th>Reach</th><th>Views</th><th>Interactions</th><th>Comments</th><th>Age</th><th>Source</th>
+<th>Reach</th><th>Views</th><th>Interactions</th><th>Comments</th><th>Age</th><th>Metrics sync</th><th>Source</th>
 </tr></thead><tbody>__ROWS__</tbody></table></div>
 <h2>Measurement status</h2><p class="muted">Facebook receives read-only Graph snapshots from verified publication receipts.
 Instagram currently uses Metricool feed-post metrics. X, website UTM sessions, and backend-verified completed swaps
@@ -210,7 +243,8 @@ from randomized-slot rankings.</p>
 <footer>Source: CoinoSwap official GitHub + Meta Graph API + Metricool. No Facebook or Instagram posts can be created from this dashboard.</footer>
 </main></body></html>"""
     return (template.replace("__ASOF__",_esc(now.isoformat(timespec="minutes")))
-        .replace("__CARDS__",cards).replace("__ROWS__",table_html))
+        .replace("__CARDS__",cards).replace("__ROWS__",table_html)
+        .replace("__FB_SYNC__",_esc(fb_sync)).replace("__IG_SYNC__",_esc(ig_sync)))
 
 def build(*, receipts=FACEBOOK_RECEIPTS, snapshots=SNAPSHOTS, output=OUTPUT,
           now=None) -> dict:
