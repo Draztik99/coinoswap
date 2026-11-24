@@ -14,7 +14,8 @@
 4. Scopes requested in Graph API Explorer: `pages_manage_posts`, `pages_show_list`, `pages_read_engagement`, `read_insights`.
 5. Metricool brand 8283300 reported Facebook Page `108130358772133` and Instagram `coinoswap` connected in its read-only brand settings on 2026-11-24.
 6. Metricool scheduled-post query for 2026-11-24 through 2026-12-01 returned no planner entries. This says **nothing** about future ChatGPT automations, already published posts, or posts outside the query's visibility.
-7. Offline GitHub tests verify the existing validated asset reader, at-most-once ledger prototype, mock provider receipts, launch gate, and Facebook Page identity/health checks.
+7. On 2026-11-24, **168 offline safety tests and 6 real PostgreSQL 16 integration tests passed** on the feature branch (GitHub Actions run 45425702471). The PostgreSQL instance was disposable and is not a deployment.
+8. The feature-only CI workflow was updated to checkout v6, setup-python v6, upload-artifact v6 (Node.js 24-compatible), with a policy test prohibiting production schedules, social credentials, and write-permission grants.
 
 ## Facebook development components
 
@@ -25,9 +26,11 @@
 | `facebook_shadow.py` | Validate pinned main-branch asset + build inert Facebook photo request plan | pinned GitHub GET only |
 | `facebook_reconciliation.py` | Parse Meta published-post response, flag potential duplicates | none |
 | `facebook_page_readback.py` | Explicit manual Page identity + published-post audit | two fixed Meta GET requests |
+| `facebook_token_review.py` | Offline review of token validity, app identity, scopes and expiry metadata | none |
+| `pg_ledger.py` / `postgres_schema.sql` | Atomic PostgreSQL reservation / reconciliation, tested in disposable DB | no social network |
 | `contracts.py` / `receipts.py` | Inert photo POST contract / verified post receipt schema | none |
 | `launch_gate.py` / `ledger.py` | Block live while Metricool active and persist simulated idempotency | local offline SQLite |
-| `.github/workflows/direct-social-tests.yml` | Unit tests and dashboard on feature branch | offline except dependency installation |
+| `.github/workflows/direct-social-tests.yml` | Offline unit tests, real disposable PostgreSQL service, dashboard on feature branch | no Meta or Metricool calls |
 
 **Important:** A Page published-post readback that finds no matching caption is *not* proof there are no Metricool posts. Photo-only posts, incomplete pagination, app permissions, and separate publishing automations require independent reconciliation. This system has no mechanism for posting in production.
 
@@ -54,11 +57,11 @@ This command can fail closed on expired assets or an unavailable pinned pair. A 
 
 1. **Production token architecture**: choose authorized token type and review expiration/invalidation, refresh and rotation; record Meta app mode, authorized Page tasks and relevant permissions. Explorer tokens alone are not production credential management. A Meta system-user token requires correct Business portfolio/app/Page relationships and authorizations; availability is **not yet proven**.
 2. **Credentials in a restricted environment**: dedicated secrets manager or GitHub Actions production environment with reviewer protections; never store in source, logs or pull-request jobs. Do not wire secrets into this feature branch's CI.
-3. **Durable idempotency store**: PostgreSQL (or equivalent) with one atomic UNIQUE key `(platform, date_sast, campaign_key)`; current SQLite is for offline single-host simulation only.
+3. **Durable idempotency store**: PostgreSQL (or equivalent) with one atomic UNIQUE key `(platform, date_sast, campaign_key)`; the PostgreSQL prototype has passed real disposable-container tests but **is not provisioned in a production environment**.
 4. **Cross-publisher reconciliation**: authoritative checks of Metricool post state plus Facebook published post readback, before and after each attempted post; stale/missing/ambiguous API results must BLOCK. No blind resend on timeout.
 5. **Real sender adapter**: separately reviewed code using Page `POST /{page-id}/photos` and separate GET verification. Must be fully disconnected/disabled until live approval and cutover, with a hard kill switch and monitored alerts.
 6. **Release process**: at least seven clean shadow days, token validity monitoring, error injection (400/401/403/429/500/timeouts), DB collision tests, complete audits/receipts and rollback rehearsal.
-7. **Managed ledger deployment**: migrate `social-publisher/postgres_schema.sql` to an authorized database; inject DB connections into `pg_ledger.py` on a secure worker; prove transactional collisions using a real PostgreSQL integration test. Current tests use a fake DB only.
+7. **Managed ledger deployment**: migrate `social-publisher/postgres_schema.sql` to an authorized database; inject DB connections into `pg_ledger.py` on a secure worker; prove transactional collisions using a real PostgreSQL integration test. The earlier fake DB tests were supplemented with six real disposable PostgreSQL tests; **managed deployment and production concurrency checks remain outstanding**.
 8. **Explicit Facebook-only cutover approval**: remove Metricool as *live Facebook campaign publisher* only after the replacement is ready; preserve Instagram via Metricool. Prevent duplicate schedule overlap.
 9. **No Instagram or X changes** as part of Facebook-only scope.
 
