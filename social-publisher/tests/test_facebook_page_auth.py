@@ -10,6 +10,8 @@ from facebook_page_auth import (
     COINOSWAP_PAGE_ID,
     audit_page_access,
     page_access_lookup_spec,
+    page_identity_lookup_spec,
+    confirm_page_token_identity,
 )
 
 
@@ -73,6 +75,25 @@ class FacebookPageAuthTests(unittest.TestCase):
              "tasks": ["PROFILE_PLUS_CREATE_CONTENT"], "access_token": "secret"}
         ]})
         self.assertTrue(audit.can_proceed_to_safe_token_verification)
+
+
+    def test_page_token_identity_must_be_exact_coinoswap_page(self):
+        spec = page_identity_lookup_spec()
+        self.assertEqual(spec.method, "GET")
+        self.assertEqual(spec.url, "https://graph.facebook.com/v27.0/me")
+        self.assertEqual(spec.body, {"fields": "id,name"})
+        self.assertEqual(confirm_page_token_identity({
+            "id": COINOSWAP_PAGE_ID, "name": "Coinoswap"
+        }), "Coinoswap")
+        for invalid in [
+            {"id": "123", "name": "Another Page"},
+            {"id": COINOSWAP_PAGE_ID},
+            {"error": {"message": "private-token-value"}},
+        ]:
+            with self.subTest(response_shape=list(invalid.keys())):
+                with self.assertRaises(ContractRejected) as caught:
+                    confirm_page_token_identity(invalid)
+                self.assertNotIn("private-token-value", str(caught.exception))
 
 
 if __name__ == "__main__":
