@@ -26,6 +26,7 @@ class RecurringFacebookSafetyTests(unittest.TestCase):
         self.assertNotIn("false && github.event_name == 'schedule'", self.job)
         self.assertIn("github.ref == 'refs/heads/main'", self.job)
         self.assertIn("github.event_name == 'schedule'", self.job)
+        self.assertIn("vars.COINOSWAP_FB_DAILY_PAUSED != 'true'", self.job)
         self.assertIn("needs.prepare.outputs.asset_generated == 'true'", self.job)
         self.assertIn("needs.prepare.result == 'success'", self.job)
         self.assertIn("needs: prepare", self.job)
