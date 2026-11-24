@@ -56,7 +56,7 @@ class FacebookHealthTests(unittest.TestCase):
         self.assertEqual(opener.calls, [])
 
     def test_invalid_token_rejected_without_network(self):
-        for token in ("", " x ", "a\\nb", "a\\rb", "a b"):
+        for token in ("", " x ", "a" + chr(10) + "b", "a" + chr(13) + "b", "a b"):
             opener = FakeOpener()
             result = check_page_token(environ={TOKEN_ENV: token}, opener=opener)
             self.assertEqual(result.status, "INVALID_CONFIGURATION")
@@ -89,7 +89,7 @@ class FacebookHealthTests(unittest.TestCase):
             self.assertNotIn("secret from Meta", str(result))
 
     def test_invalid_response_and_oversize_fail_closed(self):
-        for payload in (b"<html>bad</html>", b"\\xff", b" " * (MAX_RESPONSE_BYTES + 1)):
+        for payload in (b"<html>bad</html>", bytes([255]), b" " * (MAX_RESPONSE_BYTES + 1)):
             result = check_page_token(
                 environ={TOKEN_ENV: SECRET}, opener=FakeOpener(FakeResponse(payload)))
             self.assertEqual(result.status, "UNEXPECTED_RESPONSE")
