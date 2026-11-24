@@ -1,11 +1,13 @@
 name: CoinoSwap Daily Rates (Generate Only)
 on:
   schedule:
-    # Seven candidate slots, each prepared four minutes before publication.
-    # In UTC these correspond to 11:26/11:56/12:26/12:56/13:26/13:56/14:26 SAST.
-    # The gate only generates an asset for the randomly selected slot.
-    - cron: "26,56 9-11 * * *"
-    - cron: "26 12 * * *"
+    # Retry the seven possible preparation slots at minute -4, -3 and -2.
+    # UTC 09:26..12:28 corresponds to 11:26..14:28 SAST.
+    # Only ONE randomized daily slot may generate, protected by concurrency,
+    # today's existing validated asset pair, and strict quote/image cutoffs.
+    # GitHub schedule is best-effort; independently monitor missing assets.
+    - cron: "26-28,56-58 9-11 * * *"
+    - cron: "26-28 12 * * *"
   workflow_dispatch:
     inputs:
       emergency:
@@ -23,17 +25,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Select today's randomized publishing slot
         id: slot
         env:
-          EMERGENCY_RATES: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+          EMERGENCY_RATES: ${{ github.event_name == 'workflow_dispatch' && inputs.emergency == true && 'true' || 'false' }}
         run: python daily-rates/should_prepare.py
-      - if: steps.slot.outputs.selected == 'true'
-        run: sudo apt-get update -qq && sudo apt-get install -y fonts-lato
+      - name: Ensure official Lato fonts for rendering
+        if: steps.slot.outputs.selected == 'true'
+        run: |
+          if [ -f /usr/share/fonts/truetype/lato/Lato-Black.ttf ] &&
+             [ -f /usr/share/fonts/truetype/lato/Lato-Bold.ttf ]; then
+            echo "Lato installed; no apt update required"
+          else
+            sudo apt-get update -qq
+            sudo apt-get install -y fonts-lato
+          fi
       - if: steps.slot.outputs.selected == 'true'
         run: pip install -r daily-rates/requirements.txt
       - name: Generate validated assets — NEVER publish
