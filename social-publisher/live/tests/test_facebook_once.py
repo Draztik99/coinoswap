@@ -9,7 +9,7 @@ from unittest.mock import Mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from asset_reader import ValidatedAsset
-from facebook_once import publish_once, APPROVAL_PHRASE, PAGE_POST_ENDPOINT, DeliveryResult
+from facebook_once import publish_once, APPROVAL_PHRASE, PAGE_POST_ENDPOINT, DeliveryResult, published_posts_date_scoped_url
 from facebook_health import GRAPH_ME_URL
 from facebook_page_readback import PAGE_POSTS_URL
 from tag_ledger import ReservationBlocked
@@ -56,7 +56,7 @@ class FakeMeta:
             return Reply({"id":"123456"})
         if req.full_url == GRAPH_ME_URL:
             return Reply({"id":"108130358772133","name":"Coinoswap"})
-        if req.full_url == PAGE_POSTS_URL:
+        if req.full_url == published_posts_date_scoped_url(DAY):
             if self.duplicate:
                 return Reply({"data":[{
                     "id":"108130358772133_789","message":"BTC ETH XMR",
@@ -77,6 +77,16 @@ class FacebookOnceTests(unittest.TestCase):
                       opener=meta, clock=lambda: NOW)
         kwargs.update(override)
         return publish_once(asset(), **kwargs)
+
+    def test_page_history_is_filtered_to_exact_sast_day(self):
+        scoped = published_posts_date_scoped_url(DAY)
+        self.assertTrue(scoped.startswith(PAGE_POSTS_URL + "&since="))
+        self.assertIn("&until=", scoped)
+        from urllib.parse import parse_qs, urlsplit
+        from datetime import datetime
+        params = parse_qs(urlsplit(scoped).query)
+        self.assertEqual(datetime.fromtimestamp(int(params["since"][0]), tz=NOW.tzinfo).date().isoformat(), DAY)
+        self.assertEqual(datetime.fromtimestamp(int(params["until"][0]), tz=NOW.tzinfo).date().isoformat(), "2026-11-26")
 
     def test_missing_approval_or_cutover_never_makes_requests(self):
         for value in ("", "yes", "I_APPROVE"):
