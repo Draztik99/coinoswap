@@ -130,6 +130,18 @@ class PageReadbackTests(unittest.TestCase):
             self.assertEqual(e.exception.code, 2)
             audit.assert_not_called()
 
+    def test_cli_duplicate_is_not_a_green_light(self):
+        from facebook_page_readback import ReadbackResult
+        duplicate = ReadbackResult(
+            status="POSSIBLE_DUPLICATE", reason="manual review required",
+            date_sast="2026-11-24",
+        )
+        with patch("facebook_page_readback.audit_page_published_posts", return_value=duplicate):
+            with patch("sys.stdout", new_callable=io.StringIO) as out:
+                code = main(["--check"])
+        self.assertEqual(code, 3)
+        self.assertIn("POSSIBLE_DUPLICATE", out.getvalue())
+
     def test_cli_missing_token_never_publishes(self):
         with patch.dict("os.environ", {}, clear=True):
             with patch("sys.stdout", new_callable=io.StringIO) as out:
