@@ -6,6 +6,7 @@ on:
       - feature/social-analytics-photo-readback
       - feature/social-analytics-instagram-inbox
       - feature/social-analytics-freshness
+      - fix/analytics-meta-auth-isolation-20261124
     paths:
       - "social-publisher/insights/**"
       - "docs/social-analytics/**"
@@ -15,7 +16,7 @@ permissions:
   contents: read
 jobs:
   safety:
-    if: github.ref == 'refs/heads/feature/social-analytics-foundation' || github.ref == 'refs/heads/feature/social-analytics-photo-readback' || github.ref == 'refs/heads/feature/social-analytics-instagram-inbox' || github.ref == 'refs/heads/feature/social-analytics-freshness'
+    if: github.ref == 'refs/heads/feature/social-analytics-foundation' || github.ref == 'refs/heads/feature/social-analytics-photo-readback' || github.ref == 'refs/heads/feature/social-analytics-instagram-inbox' || github.ref == 'refs/heads/feature/social-analytics-freshness' || github.ref == 'refs/heads/fix/analytics-meta-auth-isolation-20261124'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
