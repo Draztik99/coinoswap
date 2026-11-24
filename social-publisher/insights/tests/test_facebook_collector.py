@@ -86,6 +86,54 @@ class FacebookCollectorTests(unittest.TestCase):
                             opener=FakeGraph(**kwargs))
                 self.assertFalse(list(self.out.glob("**/*.json")))
 
+
+    def test_photo_readback_fallback_preserves_unavailable_metrics(self):
+        from urllib.parse import parse_qs, urlsplit
+        PHOTO = "1137307215861046"
+        class PhotoOnlyGraph(FakeGraph):
+            def open(self, req, timeout):
+                if req.full_url == GRAPH_ME_URL:
+                    return super().open(req, timeout)
+                self.requests.append(req)
+                if req.get_method() != "GET":
+                    raise AssertionError("No POST in analytics")
+                if "/"+PID+"?" in req.full_url:
+                    raise HTTPError(req.full_url, 400, "post not accessible", {}, None)
+                if "/"+PHOTO+"/insights?" in req.full_url:
+                    raise HTTPError(req.full_url, 403, "metric unsupported", {}, None)
+                if "/"+PHOTO+"?" in req.full_url:
+                    fields = parse_qs(urlsplit(req.full_url).query).get("fields", [""])[0]
+                    if "page_story_id" in fields:
+                        return Response({"id":PHOTO,"page_story_id":PID,
+                            "from":{"id":PAGE_ID},
+                            "link":"https://www.facebook.com/photo.php?fbid="+PHOTO})
+                    raise HTTPError(req.full_url, 403, "counts unavailable", {}, None)
+                raise AssertionError("unapproved GET")
+        graph=PhotoOnlyGraph()
+        result=collect(token=SECRET,now=NOW,root=self.root,output=self.out,opener=graph)
+        self.assertEqual(result["snapshots_created"],1)
+        snapshot=json.loads((self.out/"2026-11-24"/"2026-11-25.json").read_text())
+        self.assertEqual(snapshot["source"],"Meta Graph API v27.0 verified photo readback")
+        self.assertIsNone(snapshot["metrics"]["comments"])
+        self.assertIsNone(snapshot["metrics"]["views"])
+        self.assertIsNone(snapshot["metrics"]["interactions"])
+        self.assertTrue(all(r.get_method()=="GET" for r in graph.requests))
+
+    def test_photo_readback_fallback_rejects_wrong_page_story(self):
+        PHOTO="1137307215861046"
+        class WrongStory(FakeGraph):
+            def open(self,req,timeout):
+                if req.full_url==GRAPH_ME_URL:
+                    return super().open(req,timeout)
+                if "/"+PID+"?" in req.full_url:
+                    raise HTTPError(req.full_url,400,"post inaccessible",{},None)
+                return Response({"id":PHOTO,"page_story_id":"999_11",
+                                 "from":{"id":PAGE_ID},
+                                 "link":"https://www.facebook.com/photo.php?fbid="+PHOTO})
+        with self.assertRaises(CollectorUnavailable):
+            collect(token=SECRET,now=NOW,root=self.root,output=self.out,opener=WrongStory())
+        self.assertEqual(list(self.out.glob("**/*.json")),[])
+
     def test_bad_receipt_fails_closed(self):
         p=self.root/"2026-11-24.json"
         p.write_text(json.dumps({**RECEIPT,"page_id":"999"}))
