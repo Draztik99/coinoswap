@@ -1,0 +1,60 @@
+name: CoinoSwap Cloudflare Dashboard Readiness (NO DEPLOY / NO POST)
+on:
+  push:
+    branches:
+      - feature/cloudflare-pages-analytics-access-gate
+      - main
+    paths:
+      - "social-publisher/insights/cloudflare_build.py"
+      - "social-publisher/insights/tests/test_cloudflare_build.py"
+      - ".github/workflows/coinoswap-cloudflare-readiness.yml"
+      - "docs/social-analytics/CLOUDFLARE_DEPLOYMENT.md"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-build-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Test locked and authorized build behavior (no network)
+        run: |
+          python -m compileall -q social-publisher/insights
+          python -m unittest discover -s social-publisher/insights/tests -v
+      - name: Export only safe provisioning placeholder (NO PRIVATE REPORT)
+        env:
+          CF_PAGES_BRANCH: main
+          COINOSWAP_TEAM_ACCESS_VERIFIED: "false"
+        run: |
+          python social-publisher/insights/cloudflare_build.py
+          test -f dist/index.html
+          test ! -d dist/reports
+          test "$(find dist -type f | wc -l | tr -d ' ')" = "3"
+      - name: Simulate private production build from actual public aggregate receipts (NOT deployed)
+        env:
+          CF_PAGES_BRANCH: main
+          COINOSWAP_TEAM_ACCESS_VERIFIED: "true"
+        run: |
+          stage=$(mktemp -d)
+          python social-publisher/insights/cloudflare_build.py --output "$stage/dist"
+          test -f "$stage/dist/reports/post-performance.csv"
+          grep -q "Facebook" "$stage/dist/index.html"
+          test "$(find "$stage/dist" -type f | wc -l | tr -d ' ')" = "4"
+          rm -rf "$stage"
+      - name: Rebuild locked-only preview for CI artifact
+        env:
+          CF_PAGES_BRANCH: main
+          COINOSWAP_TEAM_ACCESS_VERIFIED: "false"
+        run: |
+          python social-publisher/insights/cloudflare_build.py
+          test ! -d dist/reports
+      - name: Upload only LOCKED provisioning preview
+        uses: actions/upload-artifact@v6
+        with:
+          name: coinoswap-cloudflare-locked-provisioning-preview
+          path: dist/
+          retention-days: 14
