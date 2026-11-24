@@ -28,5 +28,5 @@ jobs:
         env:
           TEST_APPROVAL: ${{ inputs.approval }}
           COINOSWAP_FB_PAGE_ACCESS_TOKEN: ${{ secrets.COINOSWAP_FB_PAGE_ACCESS_TOKEN }}
-          COINOSWAP_FB_TEST_ENABLED: ${{ vars.COINOSWAP_FB_TEST_ENABLED }}
+          COINOSWAP_FB_TEST_ENABLED: ${{ inputs.approval == 'I_APPROVE_ONE_LIVE_COINOSWAP_TEST_POST' && 'true' || 'false' }}
         run: python social-publisher/live/facebook_one_time_test.py
