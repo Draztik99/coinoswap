@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 TAG_PREFIX = "coinoswap-facebook-daily-rates-"
+TEST_TAG = "coinoswap-facebook-api-test-v1"
 
 
 class ReservationBlocked(RuntimeError):
@@ -31,7 +32,13 @@ class TagReservation:
                 raise ValueError()
         except (TypeError, ValueError) as exc:
             raise ReservationBlocked("invalid reservation date") from exc
-        tag = TAG_PREFIX + date_sast
+        return self._reserve_tag(TAG_PREFIX + date_sast, request_id=request_id)
+
+    def reserve_one_time_test(self, *, request_id: str | None = None) -> str:
+        """Reserve the lifetime-wide single live API test, never daily rates."""
+        return self._reserve_tag(TEST_TAG, request_id=request_id)
+
+    def _reserve_tag(self, tag: str, *, request_id: str | None) -> str:
         request_id = request_id or uuid.uuid4().hex
         if not re.fullmatch(r"[a-zA-Z0-9_-]{8,64}", request_id):
             raise ReservationBlocked("invalid reservation nonce")
