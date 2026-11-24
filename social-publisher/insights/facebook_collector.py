@@ -115,9 +115,12 @@ def collect(*, token: str, now: datetime, root: Path = RECEIPT_DIR,
     try:
         meta = graph_get(opener, url=GRAPH_ME_URL, token=token, allowlist={GRAPH_ME_URL})
         confirm_page_token_identity(meta)
-    except (HTTPError, URLError, OSError, TimeoutError, ValueError, TypeError,
-            ContractRejected, UnicodeError, json.JSONDecodeError) as exc:
-        raise CollectorUnavailable("CoinoSwap Meta Page authentication failed") from None
+    except HTTPError as exc:
+        # Numeric HTTP status only; never emit provider bodies or token-bearing URLs.
+        raise CollectorUnavailable("CoinoSwap Meta Page authentication failed (HTTP " + str(exc.code) + ")") from None
+    except (URLError, OSError, TimeoutError, ValueError, TypeError,
+            ContractRejected, UnicodeError, json.JSONDecodeError):
+        raise CollectorUnavailable("CoinoSwap Meta Page authentication failed (network or response)") from None
     if not root.is_dir():
         return {"status":"NO_VERIFIED_RECEIPTS","snapshots_created":0,"posts_eligible":0}
     prepared = []
