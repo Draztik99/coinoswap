@@ -73,7 +73,7 @@ jobs:
     # only after a freshly generated, checksum-validated rate image.
     # Metricool is Instagram-only; never re-enable Facebook there.
     # Manual dispatch remains generator-only (no automatic FB publication).
-    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'schedule' && needs.prepare.outputs.asset_generated == 'true' && needs.prepare.result == 'success' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'schedule' && vars.COINOSWAP_FB_DAILY_PAUSED != 'true' && needs.prepare.outputs.asset_generated == 'true' && needs.prepare.result == 'success' }}
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 6
