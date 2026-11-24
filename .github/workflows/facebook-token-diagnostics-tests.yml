@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - fix/meta-token-safe-diagnostics-20261124
+      - fix/facebook-token-recovery-checklist
     paths:
       - "social-publisher/facebook_health.py"
       - "social-publisher/tests/test_facebook_health.py"
@@ -13,7 +14,7 @@ permissions:
   contents: read
 jobs:
   no-post-token-tests:
-    if: github.ref == 'refs/heads/fix/meta-token-safe-diagnostics-20261124'
+    if: github.ref == 'refs/heads/fix/meta-token-safe-diagnostics-20261124' || github.ref == 'refs/heads/fix/facebook-token-recovery-checklist'
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
