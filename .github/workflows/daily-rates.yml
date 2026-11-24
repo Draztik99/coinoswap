@@ -69,10 +69,11 @@ jobs:
           echo "asset_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   publish-facebook:
-    # HARD DISABLED until separate explicit approval for recurring Facebook
-    # posts. Do not remove the literal "false" without release sign-off.
-    # Existing Metricool Instagram automation remains entirely independent.
-    if: ${{ false && github.event_name == 'schedule' && needs.prepare.outputs.asset_generated == 'true' && needs.prepare.result == 'success' }}
+    # APPROVED 2026-11-24: one recurring direct Facebook photo daily,
+    # only after a freshly generated, checksum-validated rate image.
+    # Metricool is Instagram-only; never re-enable Facebook there.
+    # Manual dispatch remains generator-only (no automatic FB publication).
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'schedule' && vars.COINOSWAP_FB_DAILY_PAUSED != 'true' && needs.prepare.outputs.asset_generated == 'true' && needs.prepare.result == 'success' }}
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 6
@@ -112,4 +113,14 @@ jobs:
           git config user.email "coinoswap-rates-bot@users.noreply.github.com"
           git add "docs/daily-rates/facebook-publications/$day.json"
           git commit -m "Record verified direct Facebook Daily Rates post $day"
-          git push origin HEAD:main
+          # After Meta has independently confirmed publication, retry ONLY
+          # this Git receipt push if main advanced. Never rerun the Meta POST.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then exit 0; fi
+            if [ "$attempt" -lt 3 ]; then
+              git fetch origin main
+              git rebase origin/main
+            fi
+          done
+          echo "Receipt push unsuccessful; Facebook may ALREADY be live. Do not retry publishing." >&2
+          exit 1

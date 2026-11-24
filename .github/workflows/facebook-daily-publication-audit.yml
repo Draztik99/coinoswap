@@ -1,0 +1,21 @@
+name: CoinoSwap Facebook — Daily Verified Publication Alarm (NO POST)
+on:
+  # 14:55 SAST, after all randomized 11:30–14:30 posting slots.
+  # Independent of ChatGPT's 14:59 Instagram/FB receipt audit.
+  schedule:
+    - cron: "55 12 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-verified-receipt:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Require a verified CoinoSwap Facebook post receipt for today's SAST date (NO POST)
+        run: python social-publisher/live/check_daily_receipt.py
