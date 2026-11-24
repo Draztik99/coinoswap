@@ -63,6 +63,36 @@ It does not execute when imported or during CI, and never posts.
 Existing Metricool remains the production publisher. No Facebook POSTs
 are implemented or authorized.
 
+## Meta token lifecycle (offline review only)
+
+`facebook_token_review.py` provides a secret-free assessment of an
+**already obtained** Meta `debug_token` response: token validity, expected
+Meta App ID, required Page scopes, token expiry and user-data expiry.
+It **never** fetches an access token, calls Meta, refreshes credentials or
+enables publishing. A 0/unknown expiry is `REVIEW_REQUIRED`, not proof of
+permanent validity. `VALIDITY_WINDOW_OK` is not authorization to publish.
+The app's live-mode, asset assignments and permissions still require separate
+verification.
+
+Official Meta API reference:
+https://developers.facebook.com/docs/graph-api/reference/debug_token/
+
+## Real PostgreSQL transaction tests (disposable CI only)
+
+The development workflow has a second job, `postgres-safety-tests`, that
+starts an ephemeral PostgreSQL 16 service container and runs
+`social-publisher/tests-postgres` using temporary fixture credentials.
+It tests concurrent reservations from 16 workers, protection against
+Metricool overlap, compare-and-swap state changes and no blind retries.
+
+**CI results 2026-11-24:** 168 offline safety tests plus 6 real PostgreSQL
+tests passed: https://github.com/Draztik99/coinoswap/actions/runs/45425702471.
+This proves *test environment* behaviour only; no PostgreSQL instance or
+credentials are deployed for real publishing.
+
+The isolated workflow uses Node.js 24-compatible versions of official
+GitHub Actions and remains scoped to the development branch only.
+
 ## Cross-run durable ledger (prototype, not deployed)
 
 `postgres_schema.sql` provides a PostgreSQL schema with an atomic unique
