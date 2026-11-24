@@ -4,6 +4,7 @@ on:
     branches:
       - feature/social-analytics-foundation
       - feature/social-analytics-photo-readback
+      - feature/social-analytics-instagram-inbox
     paths:
       - "social-publisher/insights/**"
       - "docs/social-analytics/**"
@@ -13,7 +14,7 @@ permissions:
   contents: read
 jobs:
   safety:
-    if: github.ref == 'refs/heads/feature/social-analytics-foundation' || github.ref == 'refs/heads/feature/social-analytics-photo-readback'
+    if: github.ref == 'refs/heads/feature/social-analytics-foundation' || github.ref == 'refs/heads/feature/social-analytics-photo-readback' || github.ref == 'refs/heads/feature/social-analytics-instagram-inbox'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
