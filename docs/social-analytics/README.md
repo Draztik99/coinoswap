@@ -62,3 +62,28 @@ The example date is already imported. Never overwrite an existing snapshot; use 
 - Meta Page Insights deprecations: https://developers.facebook.com/docs/graph-api/reference/insights/
 - Metricool API access eligibility: https://help.metricool.com/plans-add-ons-and-api-access-explained-xux1u
 - Metricool API vs connector: https://help.metricool.com/mcp-vs-api-access-what-is-the-difference-5y3ib
+
+## Metricool connector inbox — no API key needed in GitHub
+
+The companion `social-publisher/insights/instagram_inbox.py` reads trusted connector exports placed in
+`docs/social-analytics/inbox/instagram/YYYY-MM-DD.json`. The file must have:
+
+```json
+{
+  "schema_version": 1,
+  "brand_id": "8283300",
+  "retrieved_at_sast": "2026-11-25T14:59:00+02:00",
+  "metric_field_ids": ["IGPO02","IGPO03","IGPO04","IGPO06","IGPO08","IGPO10","IGPO12","IGPO13","IGPO14","IGPO15","IGPO27","IGPO28"],
+  "rows": []
+}
+```
+
+The `rows` are the exact read-only Metricool `getAnalyticsDataByMetrics` records.
+Only CoinoSwap Daily Rates feed posts are kept. The importer validates the brand, field order, collection
+timestamp and date; writes a date-specific immutable snapshot; and silently skips a date previously
+imported. It never creates/schedules a post and stores no Metricool token.
+
+The existing CoinoSwap 14:59 SAST audit watcher can supply the daily inbox file
+using its already-connected Metricool analytics connector. This avoids adding paid API credentials
+or interfering with the regular Instagram publisher. Its collection is subject to the existing
+task's successful execution and is **not** yet proven through unattended consecutive days.
