@@ -68,7 +68,7 @@ def build_facebook_shadow_preview(
         raise ContractRejected("shadow preview unexpectedly authorized publication")
     return FacebookShadowPreview(
         status="BLOCKED_METRICOOL" if metricool_active else "SHADOW_ONLY",
-        reason=guard.reason,
+        reason="Metricool remains active for Facebook" if metricool_active else guard.reason,
         page_id=COINOSWAP_PAGE_ID,
         date_sast=asset.date_sast,
         campaign_key=CAMPAIGN_KEY,
