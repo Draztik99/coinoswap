@@ -1,0 +1,30 @@
+name: CoinoSwap Meta Token Diagnostics — Offline Safety (NO POST)
+on:
+  push:
+    branches:
+      - fix/meta-token-safe-diagnostics-20261124
+    paths:
+      - "social-publisher/facebook_health.py"
+      - "social-publisher/tests/test_facebook_health.py"
+      - ".github/workflows/facebook-token-diagnostics-tests.yml"
+      - ".github/workflows/facebook-readonly-health.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  no-post-token-tests:
+    if: github.ref == 'refs/heads/fix/meta-token-safe-diagnostics-20261124'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Verify Meta GET-only code and sanitization offline (NO SECRETS)
+        run: |
+          python -m compileall -q social-publisher/facebook_health.py
+          python -m unittest discover -s social-publisher/tests -p test_facebook_health.py -v
+      - name: Check no network call without secret
+        run: |
+          python social-publisher/facebook_health.py --check && exit 1 || test "$?" = 2
