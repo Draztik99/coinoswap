@@ -32,3 +32,11 @@
 ## Next engineering phase (requires separate approval for any external operation)
 
 Implement a **GET-only credential health probe** with environment-injected secrets, no token logging, explicit allowlisted Meta Graph URL, timeout and safe redacted errors; verify locally or in an isolated reviewed environment. Never enable live social POST from this diagnostic.
+
+## 2026-11-24 — Credential health implementation (manual GET-only)
+
+- New `social-publisher/facebook_health.py`: explicit command-line `--check` performs one fixed read-only HTTPS request to Meta's `/me?fields=id,name`, using a Bearer token only from `COINOSWAP_FB_PAGE_ACCESS_TOKEN` in process environment.
+- Fixed URL, TLS verification, disabled redirect following, 8-second default timeout, 16 KiB maximum response, safe status classifications and no raw provider errors or token values in printed output.
+- New offline mocked tests cover identity, missing/malformed credentials, token nondisclosure, wrong Page, malformed data, oversize response, 3xx/4xx/429/5xx and network failures. No credentials are configured or run in CI.
+- Code being committed is **not** evidence of a successful live credential-health request. The earlier owner-run Graph API Explorer test already confirmed current Page identity.
+- These changes do not establish production secrets, refresh/expiry management, scheduling, post publication or cutover approval; those remain separate gated work.
