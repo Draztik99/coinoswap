@@ -5,6 +5,7 @@ on:
       - feature/direct-social-publishing
     paths:
       - "social-publisher/**"
+      - "docs/direct-social/**"
       - ".github/workflows/direct-social-tests.yml"
   workflow_dispatch:
 permissions:
