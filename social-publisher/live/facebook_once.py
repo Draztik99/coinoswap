@@ -11,7 +11,7 @@ import json
 import re
 import ssl
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Callable, Mapping
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -59,6 +59,24 @@ def _get_json(opener, url: str, token: str, *, allowed: set[str]) -> dict:
     if not isinstance(value, dict) or value.get("error") is not None:
         raise ValueError("Graph readback invalid")
     return value
+
+
+def published_posts_date_scoped_url(date_sast: str) -> str:
+    """Query only the current SAST calendar day instead of historical pages.
+
+    Generic Graph since/until filters reduce false blocks caused by years of
+    older posts; any remaining pagination or ambiguity still blocks posting.
+    """
+    try:
+        day = datetime.fromisoformat(date_sast + "T00:00:00+02:00")
+        if day.astimezone(SAST).date().isoformat() != date_sast:
+            raise ValueError("noncanonical day")
+        after = day + timedelta(days=1)
+    except (TypeError, ValueError) as exc:
+        raise ContractRejected("invalid Daily Rates SAST date") from exc
+    return PAGE_POSTS_URL + "&" + urlencode({
+        "since": int(day.timestamp()), "until": int(after.timestamp()),
+    })
 
 
 def publish_once(
@@ -110,7 +128,8 @@ def publish_once(
                               _RejectRedirects())
     try:
         confirm_page_token_identity(_get_json(opener, GRAPH_ME_URL, token, allowed={GRAPH_ME_URL}))
-        feed = _get_json(opener, PAGE_POSTS_URL, token, allowed={PAGE_POSTS_URL})
+        scoped_url = published_posts_date_scoped_url(asset.date_sast)
+        feed = _get_json(opener, scoped_url, token, allowed={scoped_url})
         audit = scan_published_posts(feed, date_sast=asset.date_sast)
         if audit.status == "POSSIBLE_DUPLICATE":
             return DeliveryResult("BLOCKED", "possible Facebook daily-rates duplicate exists")
