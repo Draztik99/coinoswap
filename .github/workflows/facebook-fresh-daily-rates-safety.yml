@@ -1,0 +1,43 @@
+name: CoinoSwap Fresh Rates Rescue — Offline Safety Tests (NO POST)
+on:
+  push:
+    branches:
+      - feature/manual-fresh-daily-rates-first-post
+    paths:
+      - "social-publisher/live/wait_for_rates_target.py"
+      - "social-publisher/live/tests/**"
+      - ".github/workflows/facebook-fresh-daily-rates-manual.yml"
+      - ".github/workflows/facebook-fresh-daily-rates-safety.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-only:
+    if: github.ref == 'refs/heads/feature/manual-fresh-daily-rates-first-post'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Compile manual recovery and sender modules
+        run: python -m compileall -q social-publisher/live
+      - name: Run all mock-only Facebook live transport and wait-window tests
+        run: python -m unittest discover -s social-publisher/live/tests -v
+      - name: Check manual post workflow cannot fire automatically
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          yaml = Path('.github/workflows/facebook-fresh-daily-rates-manual.yml').read_text()
+          assert 'workflow_dispatch:' in yaml
+          assert '  schedule:' not in yaml
+          assert '  push:' not in yaml
+          assert 'environment: facebook-live' in yaml
+          assert "github.ref == 'refs/heads/main'" in yaml
+          assert "inputs.metricool_facebook_disabled == true" in yaml
+          assert "secrets.COINOSWAP_FB_PAGE_ACCESS_TOKEN" in yaml
+          assert "secrets.CMC_API_KEY" in yaml
+          assert 'git push origin HEAD:main' in yaml
+          print('Manual-only approvals and source/Meta secret references checked.')
+          PY
