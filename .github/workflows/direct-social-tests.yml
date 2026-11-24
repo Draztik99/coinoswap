@@ -15,8 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install test-only media dependency
@@ -28,7 +28,7 @@ jobs:
       - name: Generate no-data analytics dashboard preview
         run: python social-publisher/dashboard.py --output coinoswap-shadow-dashboard.html
       - name: Upload dashboard preview artifact (NO LIVE DATA)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: CoinoSwap-Shadow-Dashboard-Preview
           path: coinoswap-shadow-dashboard.html
