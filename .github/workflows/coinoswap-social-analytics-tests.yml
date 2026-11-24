@@ -1,0 +1,33 @@
+name: CoinoSwap Social Analytics — Offline CI (NO POST)
+on:
+  push:
+    branches:
+      - feature/social-analytics-foundation
+    paths:
+      - "social-publisher/insights/**"
+      - "docs/social-analytics/**"
+      - ".github/workflows/coinoswap-social-analytics*.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  safety:
+    if: github.ref == 'refs/heads/feature/social-analytics-foundation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Test read-only metric normalization, importer and dashboard
+        run: |
+          python -m compileall -q social-publisher/insights
+          python -m unittest discover -s social-publisher/insights/tests -v
+      - name: Render real seeded-source dashboard into disposable artifact
+        run: python social-publisher/insights/dashboard.py --output "$RUNNER_TEMP/coinoswap-social-analytics.html"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: coinoswap-social-analytics-readonly-preview
+          path: ${{ runner.temp }}/coinoswap-social-analytics.html
+          retention-days: 14
