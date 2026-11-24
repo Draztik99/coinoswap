@@ -73,6 +73,58 @@ class DashboardTests(unittest.TestCase):
         self.assertNotIn("<script>",html)
         self.assertIn("&lt;script&gt;",html)
 
+    def test_table_has_ten_cells_and_separate_metric_sync_from_post_link(self):
+        from html.parser import HTMLParser
+
+        class Rows(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.in_body = False
+                self.cells = []
+                self.current_row = None
+            def handle_starttag(self, tag, attrs):
+                if tag == "tbody":
+                    self.in_body = True
+                elif self.in_body and tag == "tr":
+                    self.current_row = []
+                elif self.in_body and tag == "td" and self.current_row is not None:
+                    self.current_row.append("")
+                elif tag == "a" and self.current_row:
+                    self.current_row[-1] += "[source]"
+            def handle_endtag(self, tag):
+                if tag == "tr" and self.current_row is not None:
+                    self.cells.append(self.current_row)
+                    self.current_row = None
+                elif tag == "tbody":
+                    self.in_body = False
+            def handle_data(self, data):
+                if self.in_body and self.current_row and data.strip():
+                    self.current_row[-1] += data
+
+        snapshots_dir = self.snapshots/"facebook"/"2026-11-24"
+        snapshots_dir.mkdir(parents=True)
+        data = {
+            "platform": "facebook",
+            "provider_post_id": self.receipt["provider_post_id"],
+            "date_sast": "2026-11-24",
+            "published_at_sast": self.receipt["published_at_sast"],
+            "public_url": self.receipt["public_url"],
+            "collected_at_sast": "2026-11-25T18:30:00+02:00",
+            "metrics": {name: None for name in FIELDS},
+        }
+        (snapshots_dir/"2026-11-25.json").write_text(json.dumps(data))
+        rendered = render(posts=load_posts(facebook_receipts=self.receipts,
+                                          snapshots=self.snapshots), now=NOW)
+        self.assertIn("<th>Metrics sync</th><th>Source</th>", rendered)
+        rows = Rows()
+        rows.feed(rendered)
+        self.assertEqual(len(rows.cells), 1)
+        self.assertEqual(len(rows.cells[0]), 10)
+        self.assertIn("2026-11-25 18:30", rows.cells[0][8])
+        self.assertNotIn("[source]", rows.cells[0][8])
+        self.assertIn("[source]", rows.cells[0][9])
+        self.assertIn("View post", rows.cells[0][9])
+
     def test_dashboard_identifies_stale_observations(self):
         directory=self.snapshots/"facebook"/"2026-11-24"
         directory.mkdir(parents=True)

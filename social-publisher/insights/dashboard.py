@@ -204,6 +204,7 @@ def render(*, posts: list[dict], now: datetime) -> str:
             "<td>"+_esc(_metric(metric["interactions"]))+"</td>"
             "<td>"+_esc(_metric(metric["comments"]))+"</td>"
             "<td>"+_esc(maturity)+"</td>"
+            "<td>"+_esc(sync_label)+"</td>"
             '<td><a href="'+_esc(p["public_url"])+'" target="_blank" rel="noopener noreferrer">View post</a></td></tr>'
         )
     table_html="".join(table) if table else '<tr><td colspan="10">No verified posts yet. Metrics will appear after collection.</td></tr>'

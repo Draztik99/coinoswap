@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - "social-publisher/insights/cloudflare_build.py"
+      - "social-publisher/insights/dashboard.py"
+      - "social-publisher/insights/tests/test_dashboard.py"
       - "social-publisher/insights/tests/test_cloudflare_build.py"
       - ".github/workflows/coinoswap-cloudflare-readiness.yml"
       - "docs/social-analytics/CLOUDFLARE_DEPLOYMENT.md"

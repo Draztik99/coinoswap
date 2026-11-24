@@ -7,6 +7,7 @@ on:
       - feature/social-analytics-instagram-inbox
       - feature/social-analytics-freshness
       - fix/analytics-meta-auth-isolation-20261124
+      - "fix/cloudflare-*"
     paths:
       - "social-publisher/insights/**"
       - "docs/social-analytics/**"
@@ -16,7 +17,7 @@ permissions:
   contents: read
 jobs:
   safety:
-    if: github.ref == 'refs/heads/feature/social-analytics-foundation' || github.ref == 'refs/heads/feature/social-analytics-photo-readback' || github.ref == 'refs/heads/feature/social-analytics-instagram-inbox' || github.ref == 'refs/heads/feature/social-analytics-freshness' || github.ref == 'refs/heads/fix/analytics-meta-auth-isolation-20261124'
+    if: github.ref == 'refs/heads/feature/social-analytics-foundation' || github.ref == 'refs/heads/feature/social-analytics-photo-readback' || github.ref == 'refs/heads/feature/social-analytics-instagram-inbox' || github.ref == 'refs/heads/feature/social-analytics-freshness' || github.ref == 'refs/heads/fix/analytics-meta-auth-isolation-20261124' || startsWith(github.ref, 'refs/heads/fix/cloudflare-')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
