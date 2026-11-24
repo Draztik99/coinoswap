@@ -1,8 +1,10 @@
 # CoinoSwap direct publishing — isolated shadow foundation
 
 **Status: DEVELOPMENT ONLY / ZERO SOCIAL PUBLISHING CAPABILITY.**
-This directory contains no X or Meta API implementation, no token access,
-and no function that can send a social post.
+This directory has **no function capable of sending social posts**. The
+Facebook-only health diagnostic supports one **manual GET** to identify the
+Page token subject; it has no publishing API, automatic schedule or secret storage.
+Everything else in this folder remains offline/shadow only.
 
 ## Verified architecture inputs
 
@@ -39,6 +41,28 @@ GET requests (this still does not post):
 python social-publisher/dry_run.py --commit-sha <PINNED_MAIN_COMMIT_SHA>
 ```
 
+## Facebook Page identity health (explicit, read-only)
+
+The owner confirmed a Page token from Meta Graph API Explorer and that
+`GET /me?fields=id,name` identifies Coinoswap Page `108130358772133`.
+To repeat this check in an **isolated local environment** using a separately
+supplied Page token, use the manual `facebook_health.py --check` command.
+It does not execute when imported or during CI, and never posts.
+
+- Supply `COINOSWAP_FB_PAGE_ACCESS_TOKEN` through a trusted secrets mechanism
+  in the process environment (not via a CLI argument or code).
+- Never put the token in GitHub source, workflow YAML, command history, issues
+  or chat. Do not enable Actions secrets for this offline branch.
+- The single HTTPS GET is to Meta's fixed `/me?fields=id,name` endpoint,
+  using an Authorization header. Redirects are refused, timeouts bounded,
+  and outputs contain only fixed classifications and public Page identity.
+- `VERIFIED_PAGE_IDENTITY` checks **identity only**; it does not prove
+  expiry, renewal, app publishing mode, permission approval or posting rights.
+- For offline testing only, run `python -m unittest discover -s social-publisher/tests -v`.
+
+Existing Metricool remains the production publisher. No Facebook POSTs
+are implemented or authorized.
+
 ## Local ledger prototype
 
 `ledger.py` uses a UNIQUE composite key
@@ -51,7 +75,7 @@ publication is reconciled for that platform and day.
 
 ## Explicit non-goals of this milestone
 
-- No X, Instagram, or Facebook publishing, media upload, or OAuth.
+- No X, Instagram, or Facebook publishing, media upload, or OAuth. The manual Facebook identity check is GET-only.
 - No GitHub Actions production schedule or live credentials.
 - No new posts on any public social account.
 - No edits to `main`, Daily Rates scripts, or Metricool automations.
