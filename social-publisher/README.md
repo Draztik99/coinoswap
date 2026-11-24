@@ -1,10 +1,13 @@
 # CoinoSwap direct publishing — isolated shadow foundation
 
-**Status: DEVELOPMENT ONLY / ZERO SOCIAL PUBLISHING CAPABILITY.**
-This directory has **no function capable of sending social posts**. The
-Facebook-only health diagnostic supports one **manual GET** to identify the
-Page token subject; it has no publishing API, automatic schedule or secret storage.
-Everything else in this folder remains offline/shadow only.
+**Status: DEVELOPMENT ONLY / LIVE FACEBOOK DISABLED.**
+The root social-publisher modules and default CI remain read-only or shadow.
+A separately isolated `live/` manual Facebook transport is staged for future
+deployment. It requires a main-branch workflow dispatch, a protected environment,
+a private Page secret, an explicit cutover, a fresh signed-off asset and an
+append-only Git tag reservation. It has NO automatic schedule and remains
+unavailable to production until reviewed and merged. The old root module
+tests still prohibit accidental Facebook posts.
 
 ## Verified architecture inputs
 
@@ -60,8 +63,9 @@ It does not execute when imported or during CI, and never posts.
   expiry, renewal, app publishing mode, permission approval or posting rights.
 - For offline testing only, run `python -m unittest discover -s social-publisher/tests -v`.
 
-Existing Metricool remains the production publisher. No Facebook POSTs
-are implemented or authorized.
+Existing Metricool remains the production publisher. The optional `live/`
+manual transport code is implemented but NOT merged or authorized; the root
+identity probe has no POST capability.
 
 ## Meta token lifecycle (offline review only)
 
@@ -102,9 +106,7 @@ atomic `INSERT ... ON CONFLICT DO NOTHING` reservations, compare-and-swap state
 transitions and independently verified Metricool receipt adoption. Offline
 mock tests cover collisions, UNKNOWN outcomes and receipt requirements.
 
-**No managed PostgreSQL instance, credentials, migrations, cross-process
-integration test or production publisher has been configured.** The SQL is a
-deployment proposal; do not point these tests at a live database.
+**No managed PostgreSQL instance, credentials, migrations or production publisher has been configured.** The SQL is a deployment prototype. The separate manual sender uses immutable Git tag reservations instead of PostgreSQL; its tests are mocked.
 
 ## Facebook read-only published-post reconciliation
 
@@ -121,13 +123,13 @@ for all outcomes to prevent interpreting it as permission to publish.
 `(platform, date_sast, campaign_key)` and compare-and-swap transitions.
 Unknown delivery outcomes are never blindly resent. It is an **offline
 single-host SQLite prototype**, not a cross-run distributed ledger. Before
-any actual scheduling, migrate to a single **durable managed database**
-shared across all workers and ensure that any possible prior Metricool
-publication is reconciled for that platform and day.
+any automatic scheduling, use a durable shared ledger across all workers
+(or the manual Git reservation approach only for a single serialized GitHub
+publisher) and reconcile prior Metricool publication for that platform/day.
 
 ## Explicit non-goals of this milestone
 
-- No X, Instagram, or Facebook publishing, media upload, or OAuth. The manual Facebook identity check is GET-only.
+- No X/Instagram publication or OAuth. A manual Facebook POST adapter is staged but has no approved runtime, production credentials, or schedule.
 - No GitHub Actions production schedule or live credentials.
 - No new posts on any public social account.
 - No edits to `main`, Daily Rates scripts, or Metricool automations.

@@ -82,3 +82,15 @@ This command can fail closed on expired assets or an unavailable pinned pair. A 
 - GitHub environment approvals: https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments
 
 **Status classification:** Engineering work is safe to continue on feature branch. Live API posting is not authorized or configured and cannot responsibly be claimed complete.
+
+## 2026-11-24 — Manual single-post transport prototype
+
+- The production `main` branch source-generator reliability fix was merged separately via [PR #3](https://github.com/Draztik99/coinoswap/pull/3); it changes source retries/monitoring but sends NO social posts.
+- Staged manual sender: `social-publisher/live/facebook_once.py` + `publish_cli.py` + `tag_ledger.py`.
+- The isolated `.github/workflows/facebook-manual-publish.yml` exists only in development until an approved merge. It has **workflow_dispatch only, no schedule** and only starts on main after typing the single-post approval phrase and meeting environment requirements.
+- Rather than requiring a managed PostgreSQL database for one serial manual publisher, it uses an **append-only Git tag per SAST date** as the durable reservation before the Meta POST. A duplicate or uncertain reservation blocks a second attempt. Do not force-update/delete tags to reset an UNKNOWN delivery.
+- Private `COINOSWAP_FB_PAGE_ACCESS_TOKEN`, `COINOSWAP_FB_LIVE_ENABLED=true` and `COINOSWAP_METRICOOL_FB_DISABLED=confirmed` are required in a protected `facebook-live` environment. They are **not configured** and none are injected into development CI.
+- Source is a pinned, current-day, checksum-validated BTC/ETH/XMR PNG and audit; Page identity and positive duplicate detection run via read-only GET before reservation. Only one POST to the fixed CoinoSwap Page photo endpoint is attempted, followed by readback. Unknown outcome requires manual reconciliation, never automatic resend.
+- The Meta Page token, app live-mode status, long-term validity, production environment, Metricool cutover and a live authorized test remain **unverified**. **DO NOT PUBLISH** based on this code alone. It is code readiness, not production approval.
+- This manual proof-of-publication path does not automatically schedule or publish every day's rates. A future always-on scheduler requires a separately approved cutover and more observation.
+- Exact operator handoff: `docs/direct-social/FACEBOOK_MANUAL_RELEASE_CHECKLIST.md`.

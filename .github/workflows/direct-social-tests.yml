@@ -26,6 +26,8 @@ jobs:
         run: python -m compileall -q social-publisher
       - name: Run offline validation and idempotency tests
         run: python -m unittest discover -s social-publisher/tests -v
+      - name: Test manual Facebook sender gates with mock Meta/Git
+        run: python -m unittest discover -s social-publisher/live/tests -v
       - name: Generate no-data analytics dashboard preview
         run: python social-publisher/dashboard.py --output coinoswap-shadow-dashboard.html
       - name: Upload dashboard preview artifact (NO LIVE DATA)
