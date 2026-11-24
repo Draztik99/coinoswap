@@ -1,0 +1,26 @@
+name: CoinoSwap Facebook — One-Time Test Offline Verification (NO POST)
+on:
+  push:
+    branches:
+      - feature/facebook-one-time-live-test
+    paths:
+      - "social-publisher/live/**"
+      - ".github/workflows/facebook-one-time-test.yml"
+      - ".github/workflows/facebook-one-time-test-safety.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    if: github.ref == 'refs/heads/feature/facebook-one-time-live-test'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Verify source compiles
+        run: python -m compileall -q social-publisher/live
+      - name: Simulate one-time Meta test and Git reservation (NO NETWORK)
+        run: python -m unittest discover -s social-publisher/live/tests -v
