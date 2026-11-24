@@ -73,6 +73,22 @@ class DashboardTests(unittest.TestCase):
         self.assertNotIn("<script>",html)
         self.assertIn("&lt;script&gt;",html)
 
+    def test_dashboard_identifies_stale_observations(self):
+        directory=self.snapshots/"facebook"/"2026-11-24"
+        directory.mkdir(parents=True)
+        record={"platform":"facebook","provider_post_id":self.receipt["provider_post_id"],
+                "date_sast":"2026-11-24","published_at_sast":self.receipt["published_at_sast"],
+                "public_url":self.receipt["public_url"],
+                "collected_at_sast":"2026-11-24T19:54:21+02:00",
+                "metrics":{name:None for name in FIELDS}}
+        (directory/"2026-11-24.json").write_text(json.dumps(record))
+        late=datetime.fromisoformat("2026-11-27T21:00:00+02:00")
+        posts=load_posts(facebook_receipts=self.receipts,snapshots=self.snapshots)
+        result=render(posts=posts,now=late)
+        self.assertIn("STALE",result)
+        self.assertIn("Facebook latest metrics:",result)
+        self.assertIn("Instagram latest metrics: No metrics collected",result)
+
     def test_zero_post_dashboard_is_transparent(self):
         d=build(receipts=self.root/"absent",snapshots=self.snapshots,output=self.out,now=NOW)
         self.assertEqual(d["verified_posts"],0)
