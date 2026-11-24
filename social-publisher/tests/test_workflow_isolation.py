@@ -44,7 +44,7 @@ class WorkflowIsolationTests(unittest.TestCase):
         self.assertNotRegex(wf, r"(?m)^\s+\w+-?\w*: write\s*$")
         self.assertIn("python -m unittest discover -s social-publisher/tests -v", wf)
         self.assertIn("NO POST", wf)
-        self.assertNotRegex(wf, r"(?im)^\s+run:.*(publish|deploy|curl|facebook|metricool)", wf)
+        self.assertNotRegex(wf, r"(?im)^\s+run:.*\b(?:publish|deploy|curl|facebook|metricool)\b", wf)
 
     def test_node24_compatible_actions(self):
         wf = self.workflow
