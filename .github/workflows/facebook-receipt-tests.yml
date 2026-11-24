@@ -2,10 +2,12 @@ name: CoinoSwap Facebook Receipts — Offline Safety Tests (NO POST)
 on:
   push:
     branches:
+      - main
       - fix/facebook-publish-receipts-and-handover
     paths:
       - "social-publisher/live/**"
       - "docs/daily-rates/facebook-publications/**"
+      - "docs/daily-rates/*.json"
       - ".github/workflows/facebook-manual-publish.yml"
       - ".github/workflows/facebook-fresh-daily-rates-manual.yml"
       - ".github/workflows/daily-rates.yml"
@@ -15,7 +17,7 @@ permissions:
   contents: read
 jobs:
   offline-receipts:
-    if: github.ref == 'refs/heads/fix/facebook-publish-receipts-and-handover'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/facebook-publish-receipts-and-handover'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
