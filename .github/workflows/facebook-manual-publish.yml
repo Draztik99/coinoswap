@@ -6,6 +6,11 @@ on:
         description: "Type I_APPROVE_SINGLE_COINOSWAP_FB_POST for one Facebook Page post"
         required: true
         type: string
+      metricool_facebook_disabled:
+        description: "Confirm Metricool Facebook is disabled for CoinoSwap Daily Rates"
+        required: true
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -15,7 +20,7 @@ jobs:
   send-facebook:
     # No schedules, PR triggers or branch side-effects. A protected GitHub
     # environment must be configured and Page token provisioned by an admin.
-    if: github.ref == 'refs/heads/main' && inputs.approval_phrase == 'I_APPROVE_SINGLE_COINOSWAP_FB_POST'
+    if: github.ref == 'refs/heads/main' && inputs.approval_phrase == 'I_APPROVE_SINGLE_COINOSWAP_FB_POST' && inputs.metricool_facebook_disabled == true
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: facebook-live
@@ -30,6 +35,21 @@ jobs:
         env:
           APPROVAL_PHRASE: ${{ inputs.approval_phrase }}
           COINOSWAP_FB_PAGE_ACCESS_TOKEN: ${{ secrets.COINOSWAP_FB_PAGE_ACCESS_TOKEN }}
-          COINOSWAP_FB_LIVE_ENABLED: ${{ vars.COINOSWAP_FB_LIVE_ENABLED }}
-          COINOSWAP_METRICOOL_FB_DISABLED: ${{ vars.COINOSWAP_METRICOOL_FB_DISABLED }}
-        run: python social-publisher/live/publish_cli.py --publish --commit-sha "$GITHUB_SHA"
+          COINOSWAP_FB_LIVE_ENABLED: ${{ inputs.approval_phrase == 'I_APPROVE_SINGLE_COINOSWAP_FB_POST' && 'true' || 'false' }}
+          COINOSWAP_METRICOOL_FB_DISABLED: ${{ inputs.metricool_facebook_disabled == true && 'confirmed' || 'false' }}
+        run: |
+          python social-publisher/live/publish_cli.py --publish --commit-sha "$GITHUB_SHA" | tee "$RUNNER_TEMP/coinoswap_fb_verified_result.json"
+      - name: Persist separately verified Facebook publication receipt (NO POST)
+        run: |
+          day=$(TZ=Africa/Johannesburg date +%F)
+          sha=$(git rev-parse HEAD)
+          python social-publisher/live/publication_receipt.py \
+            --result-json "$RUNNER_TEMP/coinoswap_fb_verified_result.json" \
+            --audit-json "docs/daily-rates/$day.json" \
+            --source-commit "$sha" \
+            --github-run-id "$GITHUB_RUN_ID"
+          git config user.name "CoinoSwap Rates Bot"
+          git config user.email "coinoswap-rates-bot@users.noreply.github.com"
+          git add "docs/daily-rates/facebook-publications/$day.json"
+          git commit -m "Record independently verified Facebook Daily Rates post $day"
+          git push origin HEAD:main

@@ -50,7 +50,7 @@ jobs:
         if: steps.slot.outputs.selected == 'true'
         env:
           CMC_API_KEY: ${{ secrets.CMC_API_KEY }}
-          EMERGENCY_RATES: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+          EMERGENCY_RATES: ${{ github.event_name == 'workflow_dispatch' && inputs.emergency == true && 'true' || 'false' }}
         run: python daily-rates/prepare_rates.py
       - name: Save dated image and audit
         if: steps.slot.outputs.selected == 'true'
