@@ -119,7 +119,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("explicit --check required")
     report = audit_page_published_posts()
     print(json.dumps(asdict(report), sort_keys=True))
-    # Never emit exit code 0 as a misleading clearance to publish.\n    return 3 if report.status == "POSSIBLE_DUPLICATE" else 2
+    # Never emit exit code 0 as a misleading clearance to publish.
+    return 3 if report.status == "POSSIBLE_DUPLICATE" else 2
 
 
 if __name__ == "__main__":
