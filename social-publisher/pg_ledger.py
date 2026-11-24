@@ -9,6 +9,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import date
+from urllib.parse import urlsplit, parse_qsl
+
+from receipts import VerifiedReceipt
+from facebook_page_auth import COINOSWAP_PAGE_ID
 
 from ledger import LedgerError
 
@@ -19,6 +23,8 @@ STATE_TRANSITIONS = frozenset({
     ("SENDING", "PUBLISHED"),
     ("UNKNOWN", "PUBLISHED"),
 })
+
+ALLOWED_ERROR_CODES = frozenset({"AUTH_REJECTED", "RATE_LIMITED", "NETWORK_ERROR", "TIMEOUT", "PROVIDER_ERROR", "RECEIPT_MISSING", "UNEXPECTED_RESPONSE"})
 
 RESERVE_SQL = """
 INSERT INTO coinoswap_social_publications
@@ -91,14 +97,39 @@ class DurableLedger:
         from_state: str, to_state: str,
         provider_post_id: str | None = None, public_url: str | None = None,
         error: str | None = None,
+        verified_receipt: VerifiedReceipt | None = None,
     ) -> None:
         key = _key(platform, date_sast, campaign_key)
         if (from_state, to_state) not in STATE_TRANSITIONS:
             raise LedgerError("invalid state transition")
-        if to_state == "PUBLISHED" and (not provider_post_id or not public_url):
-            raise LedgerError("published state requires independently verified receipt")
-        if error and len(error) > 1000:
-            error = error[:1000]
+        if error is not None and error not in ALLOWED_ERROR_CODES:
+            raise LedgerError("only fixed redacted error codes may be persisted")
+        if to_state == "PUBLISHED":
+            if not isinstance(verified_receipt, VerifiedReceipt):
+                raise LedgerError("published state requires a verified receipt object")
+            if verified_receipt.platform != platform:
+                raise LedgerError("verified receipt platform mismatch")
+            if provider_post_id != verified_receipt.provider_post_id or public_url != verified_receipt.public_url:
+                raise LedgerError("published receipt fields do not match readback")
+            parts = urlsplit(public_url)
+            allowed_hosts = {
+                "facebook": {"facebook.com", "www.facebook.com", "m.facebook.com"},
+                "instagram": {"instagram.com", "www.instagram.com"},
+                "x": {"x.com", "www.x.com"},
+            }
+            if (parts.scheme != "https" or parts.hostname not in allowed_hosts[platform]
+                    or parts.username or parts.password or not parts.path.strip("/")
+                    or parts.fragment
+                    or any(key.casefold() in {"access_token", "token", "secret", "api_key"}
+                           for key, _ in parse_qsl(parts.query, keep_blank_values=True))):
+                raise LedgerError("invalid verified receipt permalink")
+            if platform == "facebook" and (
+                not isinstance(provider_post_id, str)
+                or re.fullmatch(re.escape(COINOSWAP_PAGE_ID) + r"_[0-9]+", provider_post_id) is None
+            ):
+                raise LedgerError("verified Facebook receipt is not for CoinoSwap Page")
+        elif verified_receipt is not None:
+            raise LedgerError("receipt supplied for a non-published state")
         result = self._execute_once(
             TRANSITION_SQL,
             (to_state, provider_post_id, public_url, error, *key, from_state),

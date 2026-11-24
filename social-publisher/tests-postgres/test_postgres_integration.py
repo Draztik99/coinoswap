@@ -14,6 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from ledger import LedgerError
+from receipts import verify_facebook_photo
 from pg_ledger import DurableLedger
 
 try:
@@ -98,9 +99,15 @@ class PostgresIntegrationTests(unittest.TestCase):
         with self.assertRaises(LedgerError):
             self.ledger.transition("facebook", DATE, "daily_rates",
                                    from_state="SENDING", to_state="PUBLISHED")
+        receipt = verify_facebook_photo("456", {
+            "id": "456", "page_story_id": "108130358772133_456",
+            "from": {"id": "108130358772133"},
+            "link": "https://www.facebook.com/Coinoswap/posts/456",
+        })
         self.ledger.transition(
             "facebook", DATE, "daily_rates", from_state="SENDING", to_state="PUBLISHED",
-            provider_post_id="123_456", public_url="https://www.facebook.com/123/posts/456")
+            provider_post_id=receipt.provider_post_id, public_url=receipt.public_url,
+            verified_receipt=receipt)
         self.assertEqual(self.count(), 1)
 
     def test_invalid_receipt_never_written(self):

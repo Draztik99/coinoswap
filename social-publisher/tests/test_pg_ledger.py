@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ledger import LedgerError
+from receipts import verify_facebook_photo, VerifiedReceipt
 from pg_ledger import (
     DurableLedger, RESERVE_SQL, TRANSITION_SQL, EXTERNAL_SQL,
 )
@@ -117,6 +118,40 @@ class PostgresLedgerTests(unittest.TestCase):
         with self.assertRaises(LedgerError):
             self.ledger.transition("facebook", DAY, "daily_rates",
                                    from_state="SENDING", to_state="PUBLISHED")
+
+
+    def test_published_requires_matching_verified_facebook_readback(self):
+        self.ledger.reserve("facebook", DAY, "daily_rates", HASH, "r1")
+        self.ledger.transition("facebook", DAY, "daily_rates", from_state="RESERVED", to_state="SENDING")
+        receipt = verify_facebook_photo("456", {
+            "id": "456", "page_story_id": "108130358772133_222",
+            "from": {"id": "108130358772133"},
+            "link": "https://www.facebook.com/Coinoswap/posts/222",
+        })
+        with self.assertRaises(LedgerError):
+            self.ledger.transition("facebook", DAY, "daily_rates",
+                from_state="SENDING", to_state="PUBLISHED",
+                provider_post_id="108130358772133_222", public_url=receipt.public_url)
+        with self.assertRaises(LedgerError):
+            self.ledger.transition("facebook", DAY, "daily_rates",
+                from_state="SENDING", to_state="PUBLISHED",
+                provider_post_id="999_222", public_url=receipt.public_url, verified_receipt=receipt)
+        with self.assertRaises(LedgerError):
+            self.ledger.transition("facebook", DAY, "daily_rates",
+                from_state="SENDING", to_state="PUBLISHED",
+                provider_post_id=receipt.provider_post_id, public_url="https://evil.example/x",
+                verified_receipt=receipt)
+        self.ledger.transition("facebook", DAY, "daily_rates",
+            from_state="SENDING", to_state="PUBLISHED",
+            provider_post_id=receipt.provider_post_id, public_url=receipt.public_url,
+            verified_receipt=receipt)
+
+    def test_raw_provider_error_or_token_cannot_enter_ledger(self):
+        self.ledger.reserve("facebook", DAY, "daily_rates", HASH, "r1")
+        with self.assertRaises(LedgerError):
+            self.ledger.transition("facebook", DAY, "daily_rates",
+                from_state="RESERVED", to_state="FAILED_PRE_SEND", error="EAAG_SECRET_IN_ERROR")
+        self.assertEqual(len(self.db.calls), 1)
 
     def test_wrong_state_is_blocked(self):
         self.ledger.reserve("facebook", DAY, "daily_rates", HASH, "r1")
