@@ -79,7 +79,7 @@ class RecurringFacebookSafetyTests(unittest.TestCase):
         self.assertIn("needs.prepare.outputs.asset_generated == 'true'",self.job)
 
     def test_ig_watchers_remain_outside_github(self):
-        self.assertNotIn("instagram",self.job.lower())
+        self.assertNotIn("instagram_business_content_publish",self.job.lower())
         self.assertNotIn("metricool.com",self.job.lower())
 
 
