@@ -1,0 +1,35 @@
+name: CoinoSwap Facebook — MANUAL Single Post (Approval Required)
+on:
+  workflow_dispatch:
+    inputs:
+      approval_phrase:
+        description: "Type I_APPROVE_SINGLE_COINOSWAP_FB_POST for one Facebook Page post"
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: coinoswap-facebook-live-single-post
+  cancel-in-progress: false
+jobs:
+  send-facebook:
+    # No schedules, PR triggers or branch side-effects. A protected GitHub
+    # environment must be configured and Page token provisioned by an admin.
+    if: github.ref == 'refs/heads/main' && inputs.approval_phrase == 'I_APPROVE_SINGLE_COINOSWAP_FB_POST'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: facebook-live
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Strict approval and single Facebook post (never retry)
+        env:
+          APPROVAL_PHRASE: ${{ inputs.approval_phrase }}
+          COINOSWAP_FB_PAGE_ACCESS_TOKEN: ${{ secrets.COINOSWAP_FB_PAGE_ACCESS_TOKEN }}
+          COINOSWAP_FB_LIVE_ENABLED: ${{ vars.COINOSWAP_FB_LIVE_ENABLED }}
+          COINOSWAP_METRICOOL_FB_DISABLED: ${{ vars.COINOSWAP_METRICOOL_FB_DISABLED }}
+        run: python social-publisher/live/publish_cli.py --publish --commit-sha "$GITHUB_SHA"
