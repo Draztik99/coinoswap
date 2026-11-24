@@ -63,6 +63,28 @@ It does not execute when imported or during CI, and never posts.
 Existing Metricool remains the production publisher. No Facebook POSTs
 are implemented or authorized.
 
+## Cross-run durable ledger (prototype, not deployed)
+
+`postgres_schema.sql` provides a PostgreSQL schema with an atomic unique
+`(platform,date_sast,campaign_key)` key and restrictive lifecycle states.
+`pg_ledger.py` uses an injected DB-API-compatible connection factory for
+atomic `INSERT ... ON CONFLICT DO NOTHING` reservations, compare-and-swap state
+transitions and independently verified Metricool receipt adoption. Offline
+mock tests cover collisions, UNKNOWN outcomes and receipt requirements.
+
+**No managed PostgreSQL instance, credentials, migrations, cross-process
+integration test or production publisher has been configured.** The SQL is a
+deployment proposal; do not point these tests at a live database.
+
+## Facebook read-only published-post reconciliation
+
+`facebook_reconciliation.py` and the explicitly invoked
+`facebook_page_readback.py --check` can flag likely existing Daily Rates
+posts using Page published-post GET responses. This is a *warning*, never
+proof of no duplicates: missing messages, partial pagination or Metricool
+automations require independent reconciliation. The script exits non-zero
+for all outcomes to prevent interpreting it as permission to publish.
+
 ## Local ledger prototype
 
 `ledger.py` uses a UNIQUE composite key
