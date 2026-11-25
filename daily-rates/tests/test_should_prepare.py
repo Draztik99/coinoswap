@@ -9,6 +9,7 @@ import unittest
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from should_prepare import PreparationBlocked, decide_preparation, seconds_until_fresh_window
@@ -82,6 +83,29 @@ class PreparationGateTests(unittest.TestCase):
         selected, reason = self.evaluate(14, 16)
         self.assertFalse(selected)
         self.assertIn("no duplicate", reason)
+
+    def test_wait_helper_uses_original_window_and_rechecks_clock(self):
+        import wait_until_prepare
+        with patch.object(wait_until_prepare, "seconds_until_fresh_window",
+                          side_effect=[7, 0]), patch.object(wait_until_prepare.time,
+                                                           "sleep") as sleeper:
+            self.assertEqual(wait_until_prepare.main(), 0)
+            sleeper.assert_called_once_with(7)
+        with patch.object(wait_until_prepare, "seconds_until_fresh_window",
+                          side_effect=[7, 1]), patch.object(wait_until_prepare.time,
+                                                           "sleep"):
+            self.assertEqual(wait_until_prepare.main(), 2)
+
+    def test_workflow_preserves_manual_emergency_and_facebook_schedule_gate(self):
+        yaml = (Path(__file__).resolve().parents[2] /
+                ".github/workflows/daily-rates.yml").read_text()
+        self.assertIn("16,21,26,46,51,56 9-11", yaml)
+        self.assertIn("16,21,26 12", yaml)
+        self.assertIn("python daily-rates/wait_until_prepare.py", yaml)
+        self.assertIn("&& github.event_name == 'schedule'", yaml)
+        self.assertIn("github.event_name == 'schedule' && vars.COINOSWAP_FB_DAILY_PAUSED", yaml)
+        self.assertIn("git rebase origin/main", yaml)
+        self.assertIn("fetch-depth: 0", yaml)
 
     def test_emergency_still_requires_today_not_prior_day(self):
         selected, reason = self.evaluate(16, 20, emergency=True)
