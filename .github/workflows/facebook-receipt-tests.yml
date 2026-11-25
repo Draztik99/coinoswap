@@ -7,6 +7,8 @@ on:
       - "fix/facebook-*"
     paths:
       - "social-publisher/live/**"
+      - "social-publisher/facebook_page_preflight.py"
+      - ".github/workflows/facebook-readonly-health.yml"
       - "docs/daily-rates/facebook-publications/**"
       - "docs/daily-rates/*.json"
       - ".github/workflows/facebook-manual-publish.yml"
