@@ -1,0 +1,9 @@
+# Cron-only backup. NO public HTTP route and NO Facebook credentials.
+# Cloudflare cron uses UTC. 09:21/26 UTC => 11:21/26 SAST, etc.
+name = "coinoswap-rates-backup"
+main = "src/index.mjs"
+compatibility_date = "2026-11-25"
+workers_dev = false
+
+[triggers]
+crons = ["21,26,51,56 9-11 * * *", "21,26 12 * * *"]

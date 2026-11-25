@@ -21,11 +21,16 @@ class RecurringFacebookSafetyTests(unittest.TestCase):
         cls.content = WORKFLOW.read_text(encoding="utf-8")
         cls.job = cls.content.split("\n  publish-facebook:\n", 1)[1]
 
-    def test_production_job_now_enabled_only_for_approved_scheduled_event(self):
+    def test_production_job_only_accepts_scheduled_or_scoped_backup_mode(self):
         self.assertIn("  publish-facebook:", self.content)
         self.assertNotIn("false && github.event_name == 'schedule'", self.job)
         self.assertIn("github.ref == 'refs/heads/main'", self.job)
         self.assertIn("github.event_name == 'schedule'", self.job)
+        self.assertIn("inputs.backup_trigger == true && inputs.emergency == false",self.job)
+        self.assertIn("backup_trigger:",self.content)
+        self.assertIn("default: false",self.content)
+        self.assertIn("default: true",self.content)
+        self.assertNotIn("repository_dispatch:",self.content)
         self.assertIn("vars.COINOSWAP_FB_DAILY_PAUSED != 'true'", self.job)
         self.assertIn("needs.prepare.outputs.asset_generated == 'true'", self.job)
         self.assertIn("needs.prepare.result == 'success'", self.job)
@@ -45,7 +50,7 @@ class RecurringFacebookSafetyTests(unittest.TestCase):
                 prep = expected_prepare_time(monday + timedelta(days=i))
                 self.assertEqual(prep[0]*60+prep[1],target[0]*60+target[1]-4)
 
-    def test_no_manual_dispatch_or_push_can_send_a_scheduled_post(self):
+    def test_normal_manual_dispatch_cannot_send_and_no_push_trigger(self):
         self.assertEqual(self.content.count("  schedule:"), 1)
         self.assertEqual(self.content.count("  workflow_dispatch:"), 1)
         self.assertNotIn("pull_request_target:", self.content)
@@ -76,7 +81,8 @@ class RecurringFacebookSafetyTests(unittest.TestCase):
         self.assertEqual(self.job.count('publish_cli.py --publish'),1)
 
     def test_publish_never_starts_without_source_commit(self):
-        self.assertIn("if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'schedule'",self.job)
+        self.assertIn("if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'schedule'",self.job)
+        self.assertIn("inputs.backup_trigger == true && inputs.emergency == false",self.job)
         self.assertIn("needs.prepare.outputs.asset_generated == 'true'",self.job)
 
     def test_ig_watchers_remain_outside_github(self):

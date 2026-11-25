@@ -102,8 +102,11 @@ class PreparationGateTests(unittest.TestCase):
         self.assertIn("16,21,26,46,51,56 9-11", yaml)
         self.assertIn("16,21,26 12", yaml)
         self.assertIn("python daily-rates/wait_until_prepare.py", yaml)
-        self.assertIn("&& github.event_name == 'schedule'", yaml)
-        self.assertIn("github.event_name == 'schedule' && vars.COINOSWAP_FB_DAILY_PAUSED", yaml)
+        self.assertIn("github.event_name == 'schedule'", yaml)
+        self.assertIn("inputs.backup_trigger == true && inputs.emergency == false", yaml)
+        self.assertIn("vars.COINOSWAP_FB_DAILY_PAUSED != 'true'", yaml)
+        self.assertIn("backup_trigger:", yaml)
+        self.assertIn("default: false", yaml)
         self.assertIn("git rebase origin/main", yaml)
         self.assertIn("fetch-depth: 0", yaml)
 
