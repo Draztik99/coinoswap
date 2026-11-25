@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - fix/facebook-publish-receipts-and-handover
+      - "fix/facebook-*"
     paths:
       - "social-publisher/live/**"
       - "docs/daily-rates/facebook-publications/**"
@@ -17,7 +18,7 @@ permissions:
   contents: read
 jobs:
   offline-receipts:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/facebook-publish-receipts-and-handover'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/fix/facebook-')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

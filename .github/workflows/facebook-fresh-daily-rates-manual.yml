@@ -82,6 +82,7 @@ jobs:
           COINOSWAP_METRICOOL_FB_DISABLED: ${{ inputs.metricool_facebook_disabled == true && 'confirmed' || 'false' }}
         run: |
           sha=$(git rev-parse HEAD)
+          set -o pipefail
           python social-publisher/live/publish_cli.py --publish --commit-sha "$sha" | tee "$RUNNER_TEMP/coinoswap_fb_verified_result.json"
       - name: Persist separately verified Facebook publication receipt (NO POST)
         run: |

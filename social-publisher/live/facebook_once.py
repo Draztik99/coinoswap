@@ -128,6 +128,14 @@ def publish_once(
                               _RejectRedirects())
     try:
         confirm_page_token_identity(_get_json(opener, GRAPH_ME_URL, token, allowed={GRAPH_ME_URL}))
+    except HTTPError as exc:
+        # Only numeric status is disclosed; provider bodies and tokens stay private.
+        return DeliveryResult("BLOCKED", f"Page token identity GET rejected (HTTP {exc.code})")
+    except ContractRejected:
+        return DeliveryResult("BLOCKED", "Page token did not identify CoinoSwap Page")
+    except (URLError, OSError, TimeoutError, ValueError, UnicodeError):
+        return DeliveryResult("BLOCKED", "Page token identity GET unavailable")
+    try:
         scoped_url = published_posts_date_scoped_url(asset.date_sast)
         feed = _get_json(opener, scoped_url, token, allowed={scoped_url})
         audit = scan_published_posts(feed, date_sast=asset.date_sast)
@@ -135,8 +143,10 @@ def publish_once(
             return DeliveryResult("BLOCKED", "possible Facebook daily-rates duplicate exists")
         if not audit.all_pages_inspected:
             return DeliveryResult("BLOCKED", "Page publication readback incomplete")
-    except (HTTPError, URLError, OSError, TimeoutError, ValueError, ContractRejected):
-        return DeliveryResult("BLOCKED", "Page token identity or readback unverified")
+    except HTTPError as exc:
+        return DeliveryResult("BLOCKED", f"Page posts readback GET rejected (HTTP {exc.code})")
+    except (URLError, OSError, TimeoutError, ValueError, ContractRejected, UnicodeError):
+        return DeliveryResult("BLOCKED", "Page posts readback unavailable or incomplete")
     # A clean readback alone is NOT proof against Metricool duplicates.
     # The separate manual cutover confirmation and immutable Git tag are
     # both required; no other publisher can safely overlap.
