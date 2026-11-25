@@ -71,6 +71,34 @@ class FacebookCollectorTests(unittest.TestCase):
         r2=collect(token=SECRET,now=NOW,root=self.root,output=self.out,opener=mock)
         self.assertEqual(r2["snapshots_created"],0)
 
+    def test_coverage_counts_distinguish_eligible_and_already_collected(self):
+        graph=FakeGraph()
+        first=collect(token=SECRET,now=NOW,root=self.root,output=self.out,opener=graph)
+        self.assertEqual(first["posts_eligible"],1)
+        self.assertEqual(first["snapshots_created"],1)
+        self.assertEqual(first["snapshots_already_present"],0)
+        self.assertEqual(first["receipts_outside_collection_window"],0)
+        self.assertEqual(first["collection_window_days"],32)
+        calls=len(graph.requests)
+        second=collect(token=SECRET,now=NOW,root=self.root,output=self.out,opener=graph)
+        self.assertEqual(second["posts_eligible"],1)
+        self.assertEqual(second["snapshots_created"],0)
+        self.assertEqual(second["snapshots_already_present"],1)
+        # Repeated runs only check token identity; do not re-fetch same-day post metrics.
+        self.assertEqual(len(graph.requests),calls+1)
+
+    def test_old_receipts_are_excluded_and_counted_without_api_requests(self):
+        dated="2026-10-01"
+        old={**RECEIPT,"date_sast":dated}
+        (self.root/"2026-11-24.json").unlink()
+        (self.root/(dated+".json")).write_text(json.dumps(old))
+        graph=FakeGraph()
+        result=collect(token=SECRET,now=NOW,root=self.root,output=self.out,opener=graph)
+        self.assertEqual(result["posts_eligible"],0)
+        self.assertEqual(result["snapshots_created"],0)
+        self.assertEqual(result["receipts_outside_collection_window"],1)
+        self.assertEqual(len(graph.requests),1)
+
     def test_denied_optional_insights_is_na_not_zero(self):
         x=collect(token=SECRET,now=NOW,root=self.root,output=self.out,
                   opener=FakeGraph(deny_insights=True))
