@@ -11,6 +11,7 @@ on:
       - "daily-rates/tests/**"
       - ".github/workflows/daily-rates-readiness.yml"
       - ".github/workflows/daily-rates.yml"
+      - "infra/cloudflare-daily-rates-backup/**"
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,6 +25,8 @@ jobs:
           python-version: "3.12"
       - name: Test idempotent generation gates (NO POST)
         run: python -m unittest discover -s daily-rates/tests -v
+      - name: Test independent Cloudflare cron dispatch — mocked network (NO POST)
+        run: node --test infra/cloudflare-daily-rates-backup/src/index.test.mjs
       - name: Syntax and randomized weekly coverage
         run: |
           python -m py_compile daily-rates/posting_slots.py daily-rates/should_prepare.py daily-rates/wait_until_prepare.py daily-rates/prepare_rates.py daily-rates/check_source.py
