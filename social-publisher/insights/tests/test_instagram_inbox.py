@@ -31,6 +31,7 @@ class MetricoolInboxTests(unittest.TestCase):
         self.write()
         result=process_inbox(inbox=self.inbox,output=self.output)
         self.assertEqual(result["imported"],1)
+        self.assertEqual(result["records_imported"],1)
         data=json.loads((self.output/"2026-11-24.json").read_text())
         self.assertEqual(data["records"][0]["metrics"]["reach"],3)
         self.assertEqual(data["records"][0]["metrics"]["interactions"],0)
@@ -41,6 +42,7 @@ class MetricoolInboxTests(unittest.TestCase):
         result=process_inbox(inbox=self.inbox,output=self.output)
         self.assertEqual(result["imported"],0)
         self.assertEqual(result["skipped_existing"],1)
+        self.assertEqual(result["records_imported"],0)
 
     def test_invalid_brand_and_layout_rejected(self):
         for change in ({"brand_id":"123"},{"metric_field_ids":["BAD"]},
@@ -53,6 +55,7 @@ class MetricoolInboxTests(unittest.TestCase):
 
     def test_absent_inbox_safe_noop(self):
         self.assertEqual(process_inbox(inbox=self.inbox/"missing",output=self.output)["imported"],0)
+        self.assertEqual(process_inbox(inbox=self.inbox/"missing",output=self.output)["records_imported"],0)
 
     def test_no_social_transport(self):
         code=(Path(__file__).resolve().parents[1]/"instagram_inbox.py").read_text()
