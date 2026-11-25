@@ -33,11 +33,14 @@ def _result(status: str, reason: str) -> int:
 def main(argv: list[str] | None = None, *, env=None) -> int:
     parser = argparse.ArgumentParser(description="Explicit manual Facebook-only post, never automatic")
     parser.add_argument("--publish", action="store_true", help="Send only if all approvals hold")
+    parser.add_argument("--recovery", action="store_true", help="Only for an explicitly approved fresh same-day rescue")
     parser.add_argument("--commit-sha", help="Immutable production GitHub commit")
     args = parser.parse_args(argv)
     if not args.publish:
         return _result("BLOCKED", "default is no-post: explicit manual --publish required")
     env = os.environ if env is None else env
+    if args.recovery and env.get("COINOSWAP_FB_RECOVERY_ENABLED") != "true":
+        return _result("BLOCKED", "same-day recovery needs a separate explicit approval")
     if env.get("GITHUB_REF") != "refs/heads/main" or env.get("GITHUB_REPOSITORY") != "Draztik99/coinoswap":
         return _result("BLOCKED", "only main-branch GitHub runner may request publication")
     if env.get("APPROVAL_PHRASE") != APPROVAL_PHRASE:
@@ -53,7 +56,8 @@ def main(argv: list[str] | None = None, *, env=None) -> int:
     now = datetime.now(SAST)
     try:
         manifest, image = fetch_pinned_pair(
-            commit_sha=args.commit_sha, date_sast=now.date().isoformat())
+            commit_sha=args.commit_sha, date_sast=now.date().isoformat(),
+            recovery=args.recovery)
         asset = validate_asset_pair(manifest, image, now=now)
     except (AssetRejected, OSError):
         return _result("BLOCKED", "official current-day image validation failed")
