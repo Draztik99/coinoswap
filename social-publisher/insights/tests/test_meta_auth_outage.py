@@ -29,6 +29,7 @@ class TokenOutageTests(unittest.TestCase):
 
     def test_analytics_workflow_does_not_suppress_orphaned_reports(self):
         yaml=(ROOT/".github/workflows/coinoswap-social-analytics.yml").read_text()
+        self.assertIn('5 14,17,18 * * *',yaml)
         self.assertIn("continue-on-error: true",yaml)
         self.assertIn("id: facebook_collect",yaml)
         self.assertIn("steps.facebook_collect.outcome == 'failure'",yaml)

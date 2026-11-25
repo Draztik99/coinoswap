@@ -9,7 +9,7 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from facebook_collector import collect, CollectorUnavailable, PAGE_ID, GRAPH_ME_URL
+from facebook_collector import collect, CollectorUnavailable, PAGE_ID, GRAPH_ME_URL, snapshot_filename
 
 NOW=datetime.fromisoformat("2026-11-25T18:30:00+02:00")
 PID=PAGE_ID+"_1137307232527711"
@@ -61,7 +61,7 @@ class FacebookCollectorTests(unittest.TestCase):
         mock=FakeGraph()
         r=collect(token=SECRET,now=NOW,root=self.root,output=self.out,opener=mock)
         self.assertEqual(r["snapshots_created"],1)
-        saved=json.loads((self.out/"2026-11-24"/"2026-11-25.json").read_text())
+        saved=json.loads((self.out/"2026-11-24"/"2026-11-25-evening.json").read_text())
         self.assertEqual(saved["metrics"]["views"],37)
         self.assertEqual(saved["metrics"]["comments"],0)
         self.assertEqual(saved["metrics"]["interactions"],8)
@@ -70,6 +70,30 @@ class FacebookCollectorTests(unittest.TestCase):
         self.assertNotIn(SECRET,json.dumps(saved))
         r2=collect(token=SECRET,now=NOW,root=self.root,output=self.out,opener=mock)
         self.assertEqual(r2["snapshots_created"],0)
+
+    def test_early_and_evening_are_separate_immutable_observations(self):
+        earlier=datetime.fromisoformat("2026-11-25T16:05:00+02:00")
+        later=datetime.fromisoformat("2026-11-25T19:05:00+02:00")
+        self.assertEqual(snapshot_filename(earlier),"2026-11-25-early.json")
+        self.assertEqual(snapshot_filename(later),"2026-11-25-evening.json")
+        meta=FakeGraph()
+        first=collect(token=SECRET,now=earlier,root=self.root,output=self.out,opener=meta)
+        self.assertEqual(first["snapshots_created"],1)
+        early=self.out/"2026-11-24"/"2026-11-25-early.json"
+        self.assertTrue(early.is_file())
+        calls=len(meta.requests)
+        again=collect(token=SECRET,now=datetime.fromisoformat(
+            "2026-11-25T16:15:00+02:00"),root=self.root,output=self.out,opener=meta)
+        self.assertEqual(again["snapshots_created"],0)
+        self.assertEqual(again["snapshots_already_present"],1)
+        self.assertEqual(len(meta.requests),calls+1)
+        evening=collect(token=SECRET,now=later,root=self.root,output=self.out,opener=meta)
+        self.assertEqual(evening["snapshots_created"],1)
+        late=self.out/"2026-11-24"/"2026-11-25-evening.json"
+        self.assertTrue(late.is_file())
+        self.assertNotEqual(json.loads(early.read_text())["collected_at_sast"],
+                            json.loads(late.read_text())["collected_at_sast"])
+        self.assertEqual(len(list((self.out/"2026-11-24").glob("*.json"))),2)
 
     def test_coverage_counts_distinguish_eligible_and_already_collected(self):
         graph=FakeGraph()
@@ -102,7 +126,7 @@ class FacebookCollectorTests(unittest.TestCase):
     def test_denied_optional_insights_is_na_not_zero(self):
         x=collect(token=SECRET,now=NOW,root=self.root,output=self.out,
                   opener=FakeGraph(deny_insights=True))
-        saved=json.loads((self.out/"2026-11-24"/"2026-11-25.json").read_text())
+        saved=json.loads((self.out/"2026-11-24"/"2026-11-25-evening.json").read_text())
         self.assertIsNone(saved["metrics"]["views"])
         self.assertEqual(x["snapshots_created"],1)
 
@@ -140,7 +164,7 @@ class FacebookCollectorTests(unittest.TestCase):
         graph=PhotoOnlyGraph()
         result=collect(token=SECRET,now=NOW,root=self.root,output=self.out,opener=graph)
         self.assertEqual(result["snapshots_created"],1)
-        snapshot=json.loads((self.out/"2026-11-24"/"2026-11-25.json").read_text())
+        snapshot=json.loads((self.out/"2026-11-24"/"2026-11-25-evening.json").read_text())
         self.assertEqual(snapshot["source"],"Meta Graph API v27.0 verified photo readback")
         self.assertIsNone(snapshot["metrics"]["comments"])
         self.assertIsNone(snapshot["metrics"]["views"])

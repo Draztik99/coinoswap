@@ -34,6 +34,18 @@ METRIC = "post_media_view"
 MAX_AGE_DAYS = 32
 
 
+def snapshot_filename(now: datetime) -> str:
+    """Two immutable SAST observation windows per day, not fake zero values.
+
+    The morning/afternoon snapshot and evening follow-up have different paths.
+    A delayed retry within the SAME window is a no-op. Historical daily
+    YYYY-MM-DD.json snapshots remain valid and are never overwritten.
+    """
+    now = now.astimezone(SAST)
+    bucket = "early" if now.hour < 18 else "evening"
+    return now.date().isoformat() + "-" + bucket + ".json"
+
+
 class CollectorUnavailable(RuntimeError):
     pass
 
@@ -133,7 +145,7 @@ def collect(*, token: str, now: datetime, root: Path = RECEIPT_DIR,
             skipped_outside_window += 1
             continue
         eligible_count += 1
-        destination = output / receipt["date_sast"] / (now.date().isoformat()+".json")
+        destination = output / receipt["date_sast"] / snapshot_filename(now)
         if destination.exists():
             # A day's snapshot is immutable; re-running must never change it.
             skipped_existing += 1
