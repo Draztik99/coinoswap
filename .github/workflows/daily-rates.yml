@@ -125,6 +125,7 @@ jobs:
           COINOSWAP_FB_LIVE_ENABLED: "true"
           COINOSWAP_METRICOOL_FB_DISABLED: "confirmed"
         run: |
+          set -o pipefail
           python social-publisher/live/publish_cli.py --publish --commit-sha "$SOURCE_SHA" | tee "$RUNNER_TEMP/coinoswap_fb_verified_result.json"
       - name: Commit independently verified Facebook receipt (NO POST)
         env:
