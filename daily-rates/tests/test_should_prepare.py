@@ -11,7 +11,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from should_prepare import PreparationBlocked, decide_preparation
+from should_prepare import PreparationBlocked, decide_preparation, seconds_until_fresh_window
 from posting_slots import slot_for_date, expected_prepare_time
 
 SAST = ZoneInfo("Africa/Johannesburg")
@@ -53,9 +53,35 @@ class PreparationGateTests(unittest.TestCase):
                 self.assertIn("not yet", reason)
 
     def test_too_early_and_late_fail_closed(self):
-        for hour, minute in ((14, 25), (14, 29), (14, 30), (2, 5), (15, 1)):
+        for hour, minute in ((14, 14), (14, 29), (14, 30), (2, 5), (15, 1)):
             with self.subTest(hour=hour, minute=minute):
                 self.assertEqual(self.evaluate(hour, minute)[0], False)
+
+    def test_prewarmer_selects_early_but_fresh_price_window_is_unchanged(self):
+        for minute in (15, 16, 21, 25, 26, 27, 28):
+            with self.subTest(minute=minute):
+                selected, reason = self.evaluate(14, minute)
+                self.assertTrue(selected)
+                self.assertIn("fresh asset", reason)
+        self.assertEqual(seconds_until_fresh_window(moment(14, 15)), 11 * 60)
+        self.assertEqual(seconds_until_fresh_window(moment(14, 16)), 10 * 60)
+        self.assertEqual(seconds_until_fresh_window(moment(14, 21)), 5 * 60)
+        self.assertEqual(seconds_until_fresh_window(moment(14, 26)), 0)
+        self.assertEqual(seconds_until_fresh_window(moment(14, 28, 59)), 0)
+
+    def test_prewarmer_never_opens_a_stale_or_cross_day_window(self):
+        for hour, minute in ((14, 14), (14, 29), (14, 30), (15, 1)):
+            with self.subTest(hour=hour, minute=minute):
+                with self.assertRaisesRegex(PreparationBlocked, "prewarm/cutoff"):
+                    seconds_until_fresh_window(moment(hour, minute))
+        with self.assertRaisesRegex(PreparationBlocked, "clock"):
+            seconds_until_fresh_window(datetime(2026, 11, 24, 14, 20))
+
+    def test_existing_daily_pair_prevents_second_run_while_prewarming(self):
+        self.write_pair()
+        selected, reason = self.evaluate(14, 16)
+        self.assertFalse(selected)
+        self.assertIn("no duplicate", reason)
 
     def test_emergency_still_requires_today_not_prior_day(self):
         selected, reason = self.evaluate(16, 20, emergency=True)
