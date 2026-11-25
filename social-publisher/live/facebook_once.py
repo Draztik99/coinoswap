@@ -83,6 +83,7 @@ def publish_once(
     asset: ValidatedAsset, *, pinned_commit: str,
     token: str, environ: Mapping[str, str], approval_phrase: str,
     reservation, opener=None, clock: Callable[[], datetime] | None = None,
+    recovery: bool = False,
 ) -> DeliveryResult:
     """At most one POST, only after unique reservation succeeds.
 
@@ -114,9 +115,12 @@ def publish_once(
                 or target.date().isoformat() != asset.date_sast
                 or not 0 <= (current - target).total_seconds() <= 60):
             return DeliveryResult("BLOCKED", "current SAST posting window expired/not yet open")
+        if type(recovery) is not bool:
+            return DeliveryResult("BLOCKED", "invalid recovery source selector")
+        image_folder = "/docs/daily-rates/recovery/" if recovery else "/docs/daily-rates/"
         image_url = (
             "https://raw.githubusercontent.com/Draztik99/coinoswap/"
-            + pinned_commit + "/docs/daily-rates/" + asset.date_sast + ".png"
+            + pinned_commit + image_folder + asset.date_sast + ".png"
         )
         prepared = facebook_page_photo(COINOSWAP_PAGE_ID, asset.caption, image_url)
         if prepared.method != "POST" or prepared.url != PAGE_POST_ENDPOINT:
