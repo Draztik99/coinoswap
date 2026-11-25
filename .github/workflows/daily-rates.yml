@@ -53,7 +53,9 @@ jobs:
       - if: steps.slot.outputs.selected == 'true'
         run: pip install -r daily-rates/requirements.txt
       - name: Hold pre-warmed runner until strict fresh-price window (NO POST)
-        if: steps.slot.outputs.selected == 'true'
+        # Manual emergency recovery uses a new 3-minute target and must not wait
+        # for the randomized scheduled window; generator safety is unchanged.
+        if: steps.slot.outputs.selected == 'true' && github.event_name == 'schedule'
         run: python daily-rates/wait_until_prepare.py
       - name: Generate validated assets — NEVER publish
         if: steps.slot.outputs.selected == 'true'
