@@ -65,6 +65,7 @@ def main(argv: list[str] | None = None, *, env=None) -> int:
         asset, pinned_commit=args.commit_sha, token=token, environ=env,
         approval_phrase=env["APPROVAL_PHRASE"],
         reservation=TagReservation(Path.cwd()),
+        recovery=args.recovery,
     )
     print(json.dumps(asdict(result), sort_keys=True))
     if result.status == "PUBLISHED":
