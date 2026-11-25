@@ -5,6 +5,7 @@ on:
       - ".github/workflows/daily-rates-slot-tests.yml"
       - "daily-rates/posting_slots.py"
       - "daily-rates/should_prepare.py"
+      - "daily-rates/wait_until_prepare.py"
       - "daily-rates/prepare_rates.py"
       - "daily-rates/check_source.py"
       - "daily-rates/tests/**"
@@ -25,7 +26,7 @@ jobs:
         run: python -m unittest discover -s daily-rates/tests -v
       - name: Syntax and randomized weekly coverage
         run: |
-          python -m py_compile daily-rates/posting_slots.py daily-rates/should_prepare.py daily-rates/prepare_rates.py daily-rates/check_source.py
+          python -m py_compile daily-rates/posting_slots.py daily-rates/should_prepare.py daily-rates/wait_until_prepare.py daily-rates/prepare_rates.py daily-rates/check_source.py
           python - <<'PY'
           import sys
           from datetime import date,timedelta
