@@ -1,0 +1,17 @@
+{
+  "date_sast": "2026-11-25",
+  "github_run_id": "45622748604",
+  "github_run_url": "https://github.com/Draztik99/coinoswap/actions/runs/45622748604",
+  "page_id": "108130358772133",
+  "platform": "facebook",
+  "provider_post_id": "108130358772133_1138167745774993",
+  "public_url": "https://www.facebook.com/photo.php?fbid=1138167732441661&set=a.537392199185887&type=3",
+  "published_at_sast": "2026-11-25T15:24:06+02:00",
+  "receipt_version": 1,
+  "reservation_tag": "coinoswap-facebook-daily-rates-2026-11-25",
+  "source_asset_path": "docs/daily-rates/recovery/2026-11-25.json",
+  "source_commit": "4179d782d5bdb052b3f36e91523757ed8dda5044",
+  "source_image_sha256": "5d70a621558125b6d73daa42b6af6214092f560175874cc686bbed5894e0e67c",
+  "status": "PUBLISHED",
+  "verification": "META_PAGE_PHOTO_READBACK"
+}
