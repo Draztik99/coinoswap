@@ -5,12 +5,6 @@ on:
   schedule:
     - cron: "30 8 * * *"
     - cron: "0 9 * * *"
-  # One read-only regression audit upon changes to this diagnostic workflow.
-  # Never schedules or publishes a social post.
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/facebook-readonly-health.yml"
   workflow_dispatch:
 permissions:
   contents: read
