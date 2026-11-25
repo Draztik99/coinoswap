@@ -133,8 +133,8 @@ def build(*, root: Path, output: Path, environ: Mapping[str, str],
         raise ValueError("unexpected dashboard template")
     page = page.replace(
         "<h2>Publication performance</h2>",
-        '<h2>Publication performance</h2><p>'
-        '<a href="/reports/post-performance.csv" download>Download post report (CSV)</a>'
+        '<h2>Publication performance</h2><p class="download-wrap">'
+        '<a class="download" href="/reports/post-performance.csv" download>Download post report (CSV)</a>'
         '</p>',
         1,
     )
