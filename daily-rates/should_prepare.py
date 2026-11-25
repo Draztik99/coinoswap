@@ -11,15 +11,39 @@ import hashlib
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from posting_slots import expected_prepare_time, slot_for_date
 
+# Start a selected runner early enough to install dependencies BEFORE quote collection.
+# Quotes are still retrieved only during the original 4-minute freshness window.
+PREWARM_MINUTES = 15
+
 
 class PreparationBlocked(ValueError):
     pass
+
+
+def seconds_until_fresh_window(now: datetime) -> int:
+    """Seconds until the original fresh-quote window; fail closed outside prewarm.
+
+    This is a runner-timing helper, not permission to fetch stale prices.
+    """
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise PreparationBlocked("SAST-aware clock required")
+    now = now.astimezone(ZoneInfo("Africa/Johannesburg"))
+    hour, minute = slot_for_date(now.date())
+    target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    earliest = target - timedelta(minutes=PREWARM_MINUTES)
+    cutoff = target - timedelta(minutes=1)
+    if not earliest <= now < cutoff:
+        raise PreparationBlocked("outside today's selected prewarm/cutoff window")
+    prep_hour, prep_minute = expected_prepare_time(now.date())
+    start = now.replace(hour=prep_hour, minute=prep_minute, second=0, microsecond=0)
+    from math import ceil
+    return max(0, ceil((start - now).total_seconds()))
 
 
 def decide_preparation(
@@ -34,8 +58,7 @@ def decide_preparation(
     prep = expected_prepare_time(now.date())
     target_minutes = chosen[0] * 60 + chosen[1]
     now_minutes = now.hour * 60 + now.minute
-    prep_minutes = prep[0] * 60 + prep[1]
-    selected = emergency or (prep_minutes <= now_minutes < target_minutes - 1)
+    selected = emergency or (target_minutes - PREWARM_MINUTES <= now_minutes < target_minutes - 1)
     if not selected:
         return False, "outside selected preparation window"
     day = now.date().isoformat()
@@ -82,7 +105,7 @@ def main() -> int:
         return 2
     print(
         f"Today {now.date()}: selected publication {chosen[0]:02}:{chosen[1]:02} SAST; "
-        f"preparing window {prep[0]:02}:{prep[1]:02} until one minute before target. "
+        f"prewarm up to {PREWARM_MINUTES} minutes ahead; fresh quotes start {prep[0]:02}:{prep[1]:02}, cutoff one minute before target. "
         f"Run at {now:%H:%M:%S} SAST. selected={selected}; reason={reason}"
     )
     if "GITHUB_OUTPUT" in os.environ:
