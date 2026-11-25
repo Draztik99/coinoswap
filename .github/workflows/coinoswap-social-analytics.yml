@@ -6,10 +6,11 @@ on:
     paths:
       - "social-publisher/insights/**"
       - ".github/workflows/coinoswap-social-analytics.yml"
-  # 19:05 SAST = 17:05 UTC. Collect after every 11:30–14:30 post window.
-  # GitHub schedule dispatch is best-effort. No social publishing calls.
+  # Read-only collection at 16:05 and 19:05 SAST, plus 20:05 fallback.
+  # Distinct immutable early/evening observations allow meaningful updates.
+  # Scheduled GitHub events remain best-effort; NO social publishing calls.
   schedule:
-    - cron: "5 17 * * *"
+    - cron: "5 14,17,18 * * *"
   workflow_dispatch:
 permissions:
   contents: write
