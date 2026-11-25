@@ -1,0 +1,48 @@
+{
+  "brand_id": "8283300",
+  "collected_at_sast": "2026-11-25T11:49:29+02:00",
+  "metric_field_ids": [
+    "IGPO02",
+    "IGPO03",
+    "IGPO04",
+    "IGPO06",
+    "IGPO08",
+    "IGPO10",
+    "IGPO12",
+    "IGPO13",
+    "IGPO14",
+    "IGPO15",
+    "IGPO27",
+    "IGPO28"
+  ],
+  "provider": "Metricool connector / read-only feed post metrics",
+  "records": [
+    {
+      "brand_id": "8283300",
+      "campaign_key": "daily_rates",
+      "caption": "Your 22 November crypto price check 📊\n$BTC, $ETH and $XMR.\n\nNo need to jump between exchanges.\nCompare offers and swap in one place.\n\nNo account needed.\n\n👉 coinoswap.com\n\n#crypto",
+      "collected_at_sast": "2026-11-25T11:49:29+02:00",
+      "date_sast": "2026-11-22",
+      "metric_status": "partial",
+      "metrics": {
+        "comments": 0,
+        "interactions": 0,
+        "likes": 0,
+        "link_clicks": null,
+        "reach": 3,
+        "reactions": null,
+        "saves": 0,
+        "shares": 0,
+        "views": 4
+      },
+      "platform": "instagram",
+      "provider_engagement_per_1000": 0.0,
+      "provider_post_id": "18123539791745350",
+      "public_url": "https://www.instagram.com/p/DgCxZXKDTe3/",
+      "published_at_sast": "2026-11-22T12:10:00+02:00",
+      "schema_version": 1,
+      "source": "Metricool IG feed posts; CoinoSwap brand timezone Africa/Johannesburg"
+    }
+  ],
+  "schema_version": 1
+}
