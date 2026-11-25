@@ -5,6 +5,7 @@ import unittest
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock
+from urllib.error import HTTPError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -101,6 +102,45 @@ class FacebookOnceTests(unittest.TestCase):
             self.assertEqual(r.status,"BLOCKED")
             self.assertEqual(meta.requests,[])
             ledger.reserve.assert_not_called()
+
+    def test_token_identity_http_denied_is_explicit_and_never_posts(self):
+        class TokenDenied(FakeMeta):
+            def open(self, req, timeout):
+                if req.full_url == GRAPH_ME_URL:
+                    raise HTTPError(req.full_url, 401, "secret provider body", {}, None)
+                return super().open(req, timeout)
+        meta = TokenDenied()
+        ledger = Mock()
+        result = self.send(meta, ledger)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.reason, "Page token identity GET rejected (HTTP 401)")
+        self.assertNotIn(SECRET,repr(result))
+        ledger.reserve.assert_not_called()
+
+    def test_feed_readback_http_denied_is_explicit_and_never_posts(self):
+        class FeedDenied(FakeMeta):
+            def open(self, req, timeout):
+                if req.full_url == published_posts_date_scoped_url(DAY):
+                    raise HTTPError(req.full_url, 403, "private response", {}, None)
+                return super().open(req, timeout)
+        meta = FeedDenied()
+        ledger = Mock()
+        result = self.send(meta, ledger)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.reason, "Page posts readback GET rejected (HTTP 403)")
+        self.assertNotIn(SECRET,repr(result))
+        self.assertFalse(any(req.get_method()=="POST" for req,_ in meta.requests))
+        ledger.reserve.assert_not_called()
+
+    def test_publisher_workflows_preserve_failure_exit_status(self):
+        root=Path(__file__).resolve().parents[3]
+        for path in (".github/workflows/daily-rates.yml",
+                     ".github/workflows/facebook-fresh-daily-rates-manual.yml"):
+            with self.subTest(path=path):
+                workflow=(root/path).read_text(encoding="utf-8")
+                self.assertIn("set -o pipefail",workflow)
+                self.assertIn("publish_cli.py --publish",workflow)
+                self.assertIn("| tee ",workflow)
 
     def test_stale_asset_blocks_before_meta_call(self):
         meta=FakeMeta();ledger=Mock()
