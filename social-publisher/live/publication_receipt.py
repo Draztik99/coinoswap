@@ -124,6 +124,7 @@ def write_receipt(receipt: dict, *, root: Path = BASE_PATH) -> Path:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Persist verified post receipt WITHOUT social API calls")
     parser.add_argument("--result-json", required=True)
+    parser.add_argument("--recovery", action="store_true", help="Receipt source is immutable same-day recovery asset")
     parser.add_argument("--audit-json", required=True)
     parser.add_argument("--source-commit", required=True)
     parser.add_argument("--github-run-id", required=True)
@@ -136,10 +137,13 @@ def main(argv: list[str] | None = None) -> int:
             raise ReceiptRejected("official source audit absent or oversized")
         result = json.loads(result_path.read_text(encoding="utf-8"))
         audit = json.loads(audit_path.read_text(encoding="utf-8"))
-        if audit_path.parent.as_posix() != "docs/daily-rates" or audit_path.name != audit.get("date_sast", "") + ".json":
+        expected_parent = "docs/daily-rates/recovery" if args.recovery else "docs/daily-rates"
+        if audit_path.parent.as_posix() != expected_parent or audit_path.name != audit.get("date_sast", "") + ".json":
             raise ReceiptRejected("not the official current-day source audit")
         receipt = verified_receipt(result, audit, source_commit=args.source_commit,
                                    github_run_id=args.github_run_id, at_sast=datetime.now(SAST))
+        if args.recovery:
+            receipt["source_asset_path"] = f"docs/daily-rates/recovery/{audit['date_sast']}.json"
         output = write_receipt(receipt)
     except (ReceiptRejected, OSError, ValueError, TypeError, UnicodeError):
         print("BLOCKED: independent, immutable Facebook receipt could not be recorded", file=sys.stderr)
