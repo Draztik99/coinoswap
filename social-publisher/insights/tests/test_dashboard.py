@@ -141,6 +141,32 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("Facebook latest metrics:",result)
         self.assertIn("Instagram latest metrics: No metrics collected",result)
 
+    def test_platform_and_confidence_panels_are_visible(self):
+        posts=load_posts(facebook_receipts=self.receipts,snapshots=self.snapshots)
+        markup=render(posts=posts,now=NOW)
+        self.assertIn('id="channels"',markup)
+        self.assertIn('id="insights"',markup)
+        self.assertIn('id="performance"',markup)
+        self.assertIn('id="methodology"',markup)
+        self.assertIn('Reporting confidence',markup)
+        self.assertIn('1 of 1 posts have metric snapshots' if posts[0].get('collected_at_sast') else '0 of 1 posts have metric snapshots',markup)
+        self.assertIn('A reach comparison needs at least two posts',markup)
+        self.assertNotIn('<script>',markup)
+
+    def test_measured_reach_bars_are_based_only_on_reported_values(self):
+        def row(platform,reach,day):
+            return {'platform':platform,'date_sast':day,
+                    'published_at_sast':day+'T12:10:00+02:00',
+                    'public_url':'https://www.instagram.com/p/test/',
+                    'collected_at_sast':day+'T14:10:00+02:00',
+                    'metrics':{name:(reach if name=='reach' else None) for name in FIELDS}}
+        posts=[row('instagram',10,'2026-11-23'),row('instagram',5,'2026-11-22')]
+        page=render(posts=posts,now=NOW)
+        self.assertIn('width:100.0%',page)
+        self.assertIn('width:50.0%',page)
+        self.assertIn('2 have measured reach',page)
+        self.assertNotIn('A reach comparison needs at least two posts',page)
+
     def test_zero_post_dashboard_is_transparent(self):
         d=build(receipts=self.root/"absent",snapshots=self.snapshots,output=self.out,now=NOW)
         self.assertEqual(d["verified_posts"],0)
