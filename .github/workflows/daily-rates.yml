@@ -16,6 +16,11 @@ on:
         required: false
         type: boolean
         default: true
+      backup_trigger:
+        description: 'Cloudflare cron backup ONLY; leave false for human/manual runs'
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -55,7 +60,7 @@ jobs:
       - name: Hold pre-warmed runner until strict fresh-price window (NO POST)
         # Manual emergency recovery uses a new 3-minute target and must not wait
         # for the randomized scheduled window; generator safety is unchanged.
-        if: steps.slot.outputs.selected == 'true' && github.event_name == 'schedule'
+        if: steps.slot.outputs.selected == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.backup_trigger == true && inputs.emergency == false))
         run: python daily-rates/wait_until_prepare.py
       - name: Generate validated assets — NEVER publish
         if: steps.slot.outputs.selected == 'true'
@@ -99,8 +104,10 @@ jobs:
     # APPROVED 2026-11-24: one recurring direct Facebook photo daily,
     # only after a freshly generated, checksum-validated rate image.
     # Metricool is Instagram-only; never re-enable Facebook there.
-    # Manual dispatch remains generator-only (no automatic FB publication).
-    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'schedule' && vars.COINOSWAP_FB_DAILY_PAUSED != 'true' && needs.prepare.outputs.asset_generated == 'true' && needs.prepare.result == 'success' }}
+    # Normal manual dispatch remains generator-only. Only explicit backup mode
+    # with emergency=false may follow scheduled rules, randomized window, and
+    # the same identity, freshness, unique tag and Facebook pause safeguards.
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.backup_trigger == true && inputs.emergency == false)) && vars.COINOSWAP_FB_DAILY_PAUSED != 'true' && needs.prepare.outputs.asset_generated == 'true' && needs.prepare.result == 'success' }}
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 6
