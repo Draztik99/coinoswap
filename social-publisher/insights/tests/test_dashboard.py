@@ -53,6 +53,26 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("N/A",self.out.read_text())
         self.assertIn(">0</td>",self.out.read_text())
 
+    def test_dashboard_prefers_evening_over_early_without_losing_history(self):
+        directory=self.snapshots/"facebook"/"2026-11-24"
+        directory.mkdir(parents=True)
+        common={"platform":"facebook","provider_post_id":self.receipt["provider_post_id"],
+                "date_sast":"2026-11-24",
+                "published_at_sast":self.receipt["published_at_sast"],
+                "public_url":self.receipt["public_url"]}
+        early={**common,"collected_at_sast":"2026-11-25T16:05:00+02:00",
+               "metrics":{name:None for name in FIELDS}}
+        evening={**common,"collected_at_sast":"2026-11-25T19:05:00+02:00",
+                 "metrics":{name:None for name in FIELDS}}
+        early["metrics"]["views"]=1
+        evening["metrics"]["views"]=12
+        (directory/"2026-11-25-early.json").write_text(json.dumps(early))
+        (directory/"2026-11-25-evening.json").write_text(json.dumps(evening))
+        posts=load_posts(facebook_receipts=self.receipts,snapshots=self.snapshots)
+        self.assertEqual(len(posts),1)
+        self.assertEqual(posts[0]["metrics"]["views"],12)
+        self.assertEqual(posts[0]["collected_at_sast"],"2026-11-25T19:05:00+02:00")
+
     def test_reject_metric_record_for_wrong_post(self):
         directory=self.snapshots/"facebook"/"2026-11-24"
         directory.mkdir(parents=True)
