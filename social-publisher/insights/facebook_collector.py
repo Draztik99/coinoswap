@@ -124,13 +124,19 @@ def collect(*, token: str, now: datetime, root: Path = RECEIPT_DIR,
     if not root.is_dir():
         return {"status":"NO_VERIFIED_RECEIPTS","snapshots_created":0,"posts_eligible":0}
     prepared = []
+    eligible_count = 0
+    skipped_existing = 0
+    skipped_outside_window = 0
     for path in sorted(root.glob("*.json")):
         receipt = _receipt(path, now=now)
         if receipt is None:
+            skipped_outside_window += 1
             continue
+        eligible_count += 1
         destination = output / receipt["date_sast"] / (now.date().isoformat()+".json")
         if destination.exists():
             # A day's snapshot is immutable; re-running must never change it.
+            skipped_existing += 1
             continue
         pid = receipt["provider_post_id"]
         url = f"https://graph.facebook.com/{META_API_VERSION}/{pid}?" + urlencode({"fields":POST_FIELDS})
@@ -191,7 +197,10 @@ def collect(*, token: str, now: datetime, root: Path = RECEIPT_DIR,
         except FileExistsError:
             raise CollectorUnavailable("immutable daily analytics snapshot already exists") from None
     return {"status":"COLLECTED","snapshots_created":len(prepared),
-            "posts_eligible":len(prepared)}
+            "posts_eligible":eligible_count,
+            "snapshots_already_present":skipped_existing,
+            "receipts_outside_collection_window":skipped_outside_window,
+            "collection_window_days":MAX_AGE_DAYS}
 
 
 def main() -> int:
