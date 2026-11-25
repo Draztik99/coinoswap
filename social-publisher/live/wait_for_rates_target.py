@@ -54,11 +54,13 @@ def seconds_until_target(audit: object, *, now: datetime) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Wait for fresh official SAST rates target")
     parser.add_argument("--audit", required=True, help="Local daily-rates JSON manifest")
+    parser.add_argument("--recovery", action="store_true", help="Validate dedicated same-day rescue manifest")
     args = parser.parse_args(argv)
     path = Path(args.audit)
     try:
         day = datetime.now(SAST).date().isoformat()
-        if path.name != day + ".json" or path.parent.as_posix() != "docs/daily-rates":
+        expected = "docs/daily-rates/recovery" if args.recovery else "docs/daily-rates"
+        if path.name != day + ".json" or path.parent.as_posix() != expected:
             raise WaitBlocked("only today's official Daily Rates manifest allowed")
         if not path.is_file() or path.stat().st_size > 256_000:
             raise WaitBlocked("today's local rates audit missing or oversized")

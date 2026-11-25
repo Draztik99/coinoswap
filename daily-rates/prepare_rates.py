@@ -113,12 +113,22 @@ def main():
             if not 0<=remaining<=300:
                 raise Block(f'{sym} {source_name} data outside five-minute freshness range at {target_hour:02}:{target_minute:02}')
     date=now.date().isoformat()
-    out=Path('docs/daily-rates')
+    # Explicit manual same-day rescue stores a NEW immutable asset separately.
+    # Never overwrite today's earlier validated public image or audit.
+    recovery=os.environ.get('COINOSWAP_RATES_RECOVERY','').lower()=='true'
+    if recovery and not emergency: raise Block('Recovery requires explicit emergency mode')
+    base=Path('docs/daily-rates')
+    if recovery:
+        if not (base/(date+'.png')).is_file() or not (base/(date+'.json')).is_file():
+            raise Block('Recovery requires the earlier intact source pair')
+        if (base/'facebook-publications'/(date+'.json')).exists():
+            raise Block('Facebook publication receipt already exists: no recovery')
+    out=base/'recovery' if recovery else base
     out.mkdir(parents=True,exist_ok=True)
     img=out/(date+'.png')
     audit=out/(date+'.json')
     if img.exists() or audit.exists(): raise Block('Duplicate daily asset')
-    prior=out/((now.date()-timedelta(days=1)).isoformat()+'.json')
+    prior=base/((now.date()-timedelta(days=1)).isoformat()+'.json')
     if prior.exists():
         old=json.loads(prior.read_text(encoding='utf-8'))
         for sym in COINS:

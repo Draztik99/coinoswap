@@ -153,7 +153,7 @@ def validate_asset_pair(audit_bytes: bytes, image_bytes: bytes, *, now: datetime
     )
 
 
-def fetch_pinned_pair(*, commit_sha: str, date_sast: str) -> tuple[bytes, bytes]:
+def fetch_pinned_pair(*, commit_sha: str, date_sast: str, recovery: bool = False) -> tuple[bytes, bytes]:
     """GET-only retrieval from an immutable GitHub commit (not floating main)."""
     if re.fullmatch(r"[0-9a-fA-F]{40}", commit_sha) is None:
         raise AssetRejected("a pinned 40-character commit SHA is required")
@@ -162,9 +162,12 @@ def fetch_pinned_pair(*, commit_sha: str, date_sast: str) -> tuple[bytes, bytes]
             raise ValueError("noncanonical date")
     except (TypeError, ValueError) as exc:
         raise AssetRejected("invalid SAST date") from exc
+    if type(recovery) is not bool:
+        raise AssetRejected("recovery selector must be boolean")
+    source_dir = "docs/daily-rates/recovery" if recovery else "docs/daily-rates"
     base = (
         f"https://raw.githubusercontent.com/Draztik99/coinoswap/"
-        f"{commit_sha}/docs/daily-rates/{date_sast}"
+        f"{commit_sha}/{source_dir}/{date_sast}"
     )
     outputs = []
     for ext, max_bytes in (("json", MAX_AUDIT_BYTES), ("png", MAX_IMAGE_BYTES)):
