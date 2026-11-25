@@ -5,6 +5,12 @@ on:
   schedule:
     - cron: "30 8 * * *"
     - cron: "0 9 * * *"
+  # One read-only regression audit upon changes to this diagnostic workflow.
+  # Never schedules or publishes a social post.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/facebook-readonly-health.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,3 +29,7 @@ jobs:
         env:
           COINOSWAP_FB_PAGE_ACCESS_TOKEN: ${{ secrets.COINOSWAP_FB_PAGE_ACCESS_TOKEN }}
         run: python social-publisher/facebook_health.py --check
+      - name: Verify published-post feed access — GET ONLY (NO POST)
+        env:
+          COINOSWAP_FB_PAGE_ACCESS_TOKEN: ${{ secrets.COINOSWAP_FB_PAGE_ACCESS_TOKEN }}
+        run: python social-publisher/facebook_page_preflight.py --check
