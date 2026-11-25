@@ -167,6 +167,33 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('2 have measured reach',page)
         self.assertNotIn('A reach comparison needs at least two posts',page)
 
+    def test_source_health_reports_missing_metrics_without_fabricating_reach(self):
+        posts=load_posts(facebook_receipts=self.receipts,snapshots=self.snapshots)
+        rendered=render(posts=posts,now=NOW)
+        self.assertIn('id="health"',rendered)
+        self.assertIn('NO METRICS',rendered)
+        self.assertIn('NO TRACKED POSTS',rendered)
+        self.assertIn('0/1 tracked posts have reach',rendered)
+        self.assertIn('Tracked last 7 days: 1',rendered)
+        self.assertIn('Tracked last 30 days: 1',rendered)
+        self.assertIn('This does not prove no posts were published.',rendered)
+
+    def test_source_health_reports_stale_snapshot(self):
+        directory=self.snapshots/"facebook"/"2026-11-24"
+        directory.mkdir(parents=True)
+        record={"platform":"facebook","provider_post_id":self.receipt["provider_post_id"],
+                "date_sast":"2026-11-24",
+                "published_at_sast":self.receipt["published_at_sast"],
+                "public_url":self.receipt["public_url"],
+                "collected_at_sast":"2026-11-24T19:54:21+02:00",
+                "metrics":{name:None for name in FIELDS}}
+        (directory/"2026-11-24.json").write_text(json.dumps(record))
+        late=datetime.fromisoformat("2026-11-27T21:00:00+02:00")
+        rendered=render(posts=load_posts(facebook_receipts=self.receipts,
+                                         snapshots=self.snapshots),now=late)
+        self.assertIn('STALE SNAPSHOT',rendered)
+        self.assertIn('0/1 tracked posts have reach',rendered)
+
     def test_zero_post_dashboard_is_transparent(self):
         d=build(receipts=self.root/"absent",snapshots=self.snapshots,output=self.out,now=NOW)
         self.assertEqual(d["verified_posts"],0)
