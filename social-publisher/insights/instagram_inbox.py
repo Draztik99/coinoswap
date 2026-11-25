@@ -43,7 +43,7 @@ def validate_inbox(payload: object, filename: str) -> tuple[dict,datetime]:
 def process_inbox(*, inbox=INBOX,output=OUTPUT) -> dict:
     inbox,output=Path(inbox),Path(output)
     if not inbox.is_dir():
-        return {"status":"NO_INBOX","imported":0,"skipped_existing":0}
+        return {"status":"NO_INBOX","imported":0,"skipped_existing":0,"records_imported":0}
     prepared=[]
     skipped=0
     for source in sorted(inbox.glob("*.json")):
@@ -63,7 +63,8 @@ def process_inbox(*, inbox=INBOX,output=OUTPUT) -> dict:
     # Prepare and validate everything before writing any snapshots.
     for dest,doc in prepared:
         save(doc,dest)
-    return {"status":"IMPORTED","imported":len(prepared),"skipped_existing":skipped}
+    return {"status":"IMPORTED","imported":len(prepared),"skipped_existing":skipped,
+            "records_imported":sum(len(doc["records"]) for _,doc in prepared)}
 
 
 def main() -> int:
