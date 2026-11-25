@@ -1,0 +1,70 @@
+{
+  "status": "VALIDATED",
+  "approval_state": "NOT_PUBLISHED",
+  "date_sast": "2026-11-25",
+  "checked_at_sast": "2026-11-25T15:21:48+02:00",
+  "target_sast": "2026-11-25T15:24:00+02:00",
+  "coins": {
+    "BTC": {
+      "display_usd": 58639.37,
+      "coinmarketcap": {
+        "usd": 58639.36802135911,
+        "updated_sast": "2026-11-25T15:21:04+02:00",
+        "age_seconds": 42.8
+      },
+      "kraken": {
+        "usd": 58633.5,
+        "updated_sast": "2026-11-25T15:21:43+02:00",
+        "age_seconds": 3.6
+      },
+      "deviation_pct": 0.01001,
+      "threshold_pct": 1.0
+    },
+    "ETH": {
+      "display_usd": 1644.71,
+      "coinmarketcap": {
+        "usd": 1644.705254081198,
+        "updated_sast": "2026-11-25T15:21:04+02:00",
+        "age_seconds": 42.8
+      },
+      "kraken": {
+        "usd": 1643.41,
+        "updated_sast": "2026-11-25T15:21:37+02:00",
+        "age_seconds": 9.8
+      },
+      "deviation_pct": 0.07875,
+      "threshold_pct": 1.0
+    },
+    "XMR": {
+      "display_usd": 503.4,
+      "coinmarketcap": {
+        "usd": 503.4010208856362,
+        "updated_sast": "2026-11-25T15:21:04+02:00",
+        "age_seconds": 42.8
+      },
+      "kraken": {
+        "usd": 502.99,
+        "updated_sast": "2026-11-25T15:19:23+02:00",
+        "age_seconds": 143.8
+      },
+      "deviation_pct": 0.08165,
+      "threshold_pct": 2.0
+    }
+  },
+  "experiment": {
+    "slot_sast": "15:24",
+    "week_start_sast": "2026-11-23"
+  },
+  "image": {
+    "filename": "2026-11-25.png",
+    "sha256": "5d70a621558125b6d73daa42b6af6214092f560175874cc686bbed5894e0e67c",
+    "width": 1536,
+    "height": 1024
+  },
+  "display_prices": {
+    "BTC": "$58,639.37",
+    "ETH": "$1,644.71",
+    "XMR": "$503.40"
+  },
+  "caption": "Your 25 November crypto price check 📊\n$BTC, $ETH and $XMR.\n\nNo need to jump between exchanges.\nCompare offers and swap in one place.\n\nNo account needed.\n\n👉 coinoswap.com\n\n"
+}
