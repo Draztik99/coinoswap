@@ -29,6 +29,9 @@ def inspect(day: str, root: Path = SOURCE) -> dict:
     root=Path(root)
     receipt=root/"facebook-publications"/(day+".json")
     if not receipt.is_file():
+        # Preserve distinct missing-source alarms from the original workflow.
+        if not (root/(day+".json")).is_file() or not (root/(day+".png")).is_file():
+            raise MissingVerifiedPublication("SOURCE_MISSING")
         raise MissingVerifiedPublication("FACEBOOK_RECEIPT_MISSING")
     try:
         if receipt.stat().st_size > 32_000:
