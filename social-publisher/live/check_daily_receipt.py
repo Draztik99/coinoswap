@@ -52,6 +52,8 @@ def inspect(day: str, root: Path = SOURCE) -> dict:
             raise MissingVerifiedPublication("OVERSIZED_RECORD")
         source=json.loads(manifest.read_text(encoding="utf-8"))
         digest=hashlib.sha256(image.read_bytes()).hexdigest()
+    except MissingVerifiedPublication:
+        raise
     except (OSError,UnicodeError,ValueError,TypeError) as exc:
         raise MissingVerifiedPublication("INVALID_RECORD") from exc
     if (not isinstance(source,dict) or source.get("status")!="VALIDATED"
