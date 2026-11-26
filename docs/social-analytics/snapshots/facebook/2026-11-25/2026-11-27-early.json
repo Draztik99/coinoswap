@@ -1,0 +1,24 @@
+{
+  "campaign_key": "daily_rates",
+  "collected_at_sast": "2026-11-27T00:52:03+02:00",
+  "date_sast": "2026-11-25",
+  "metric_status": "partial",
+  "metrics": {
+    "comments": null,
+    "interactions": null,
+    "likes": null,
+    "link_clicks": null,
+    "reach": null,
+    "reactions": null,
+    "saves": null,
+    "shares": null,
+    "views": 4
+  },
+  "platform": "facebook",
+  "provider_post_id": "108130358772133_1138167745774993",
+  "public_url": "https://www.facebook.com/photo.php?fbid=1138167732441661&set=a.537392199185887&type=3",
+  "published_at_sast": "2026-11-25T15:24:06+02:00",
+  "schema_version": 1,
+  "source": "Meta Graph API v27.0 verified photo readback",
+  "source_receipt": "docs/daily-rates/facebook-publications/2026-11-25.json"
+}
