@@ -7,9 +7,10 @@ import unittest
 from datetime import datetime
 from pathlib import Path
 from urllib.error import HTTPError
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from facebook_page_preflight import check_page_feed, TOKEN_ENV
+from facebook_page_preflight import check_page_feed, FeedCheck, main, TOKEN_ENV
 from facebook_reconciliation import PAGE_SIZE
 
 NOW = datetime.fromisoformat("2026-11-25T14:20:00+02:00")
@@ -58,6 +59,19 @@ class ReadOnlyPreflightTests(unittest.TestCase):
         self.assertNotIn(SECRET, graph.requests[0].full_url)
         self.assertIn("since=", graph.requests[0].full_url)
         self.assertNotIn(SECRET,repr(result))
+
+    def test_possible_duplicate_is_healthy_feed_not_permission_to_post(self):
+        # An existing Daily Rates post proves read-only Page access still works.
+        # It must NOT make the token health check red or weaken publication guard.
+        with patch("facebook_page_preflight.check_page_feed",
+                   return_value=FeedCheck("PAGE_FEED_POSSIBLE_DUPLICATE",
+                                          all_pages_inspected=True,
+                                          inspected_count=1)):
+            self.assertEqual(main(["--check"]),0)
+        with patch("facebook_page_preflight.check_page_feed",
+                   return_value=FeedCheck("PAGE_FEED_HTTP_REJECTED",
+                                          http_status=401)):
+            self.assertEqual(main(["--check"]),2)
 
     def test_denied_feed_is_numeric_only_and_never_posts(self):
         graph = FakeGraph(denied=True)
