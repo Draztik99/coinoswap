@@ -27,19 +27,30 @@ def inspect(day: str, root: Path = SOURCE) -> dict:
     except (ValueError, TypeError) as exc:
         raise MissingVerifiedPublication("INVALID_DAY") from exc
     root=Path(root)
-    manifest=root/(day+".json")
-    image=root/(day+".png")
     receipt=root/"facebook-publications"/(day+".json")
-    if not manifest.is_file() or not image.is_file():
-        raise MissingVerifiedPublication("SOURCE_MISSING")
     if not receipt.is_file():
         raise MissingVerifiedPublication("FACEBOOK_RECEIPT_MISSING")
     try:
-        if any(p.stat().st_size>limit for p,limit in
-               ((manifest,256_000),(receipt,32_000),(image,10_000_000))):
+        if receipt.stat().st_size > 32_000:
+            raise MissingVerifiedPublication("OVERSIZED_RECORD")
+        posted=json.loads(receipt.read_text(encoding="utf-8"))
+        if not isinstance(posted,dict):
+            raise MissingVerifiedPublication("INVALID_RECORD")
+        # The source is either the official daily pair or an explicitly verified
+        # same-day recovery pair. Never follow an arbitrary receipt file path.
+        official="docs/daily-rates/"+day+".json"
+        recovery="docs/daily-rates/recovery/"+day+".json"
+        source_path=posted.get("source_asset_path",official)
+        if source_path not in {official,recovery}:
+            raise MissingVerifiedPublication("SOURCE_PATH_INVALID")
+        folder=root/("recovery" if source_path==recovery else "")
+        manifest=folder/(day+".json")
+        image=folder/(day+".png")
+        if not manifest.is_file() or not image.is_file():
+            raise MissingVerifiedPublication("SOURCE_MISSING")
+        if manifest.stat().st_size > 256_000 or image.stat().st_size > 10_000_000:
             raise MissingVerifiedPublication("OVERSIZED_RECORD")
         source=json.loads(manifest.read_text(encoding="utf-8"))
-        posted=json.loads(receipt.read_text(encoding="utf-8"))
         digest=hashlib.sha256(image.read_bytes()).hexdigest()
     except (OSError,UnicodeError,ValueError,TypeError) as exc:
         raise MissingVerifiedPublication("INVALID_RECORD") from exc
