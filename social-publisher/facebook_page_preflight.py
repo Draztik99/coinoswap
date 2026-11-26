@@ -89,7 +89,9 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("explicit --check required; no network access performed")
     result = check_page_feed()
     print(json.dumps(asdict(result), sort_keys=True))
-    return 0 if result.status == "PAGE_FEED_ACCESSIBLE" else 2
+    # A positive duplicate candidate proves feed readability. This is a
+    # health check, NOT permission to create a second social post.
+    return 0 if result.status in {"PAGE_FEED_ACCESSIBLE", "PAGE_FEED_POSSIBLE_DUPLICATE"} else 2
 
 
 if __name__ == "__main__":
